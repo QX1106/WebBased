@@ -37,3 +37,5 @@ function req($key, $value = null) {
     $value = $_REQUEST[$key] ?? $value;
     return is_array($value) ? array_map('trim', $value) : trim($value);
 }
+
+// TESTING
