@@ -47,6 +47,7 @@ function get($key, $default = null) {
     return isset($_GET[$key]) ? trim_value($_GET[$key]) : $default;
 }
 
+<<<<<<< HEAD
 function post($key, $default = null) {
     return isset($_POST[$key]) ? trim_value($_POST[$key]) : $default;
 }
@@ -283,3 +284,12 @@ function save_photo($f, $folder, $width = 200, $height = 200) {
 // PAGER
 // =========================================================
 require_once root('lib/SimplePager.php');
+=======
+// Obtain REQUEST (GET and POST) parameter
+function req($key, $value = null) {
+    $value = $_REQUEST[$key] ?? $value;
+    return is_array($value) ? array_map('trim', $value) : trim($value);
+}
+
+// TESTING
+>>>>>>> 6bc8167 (Testing yixia)
