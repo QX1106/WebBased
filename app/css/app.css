@@ -1,96 +1,190 @@
-/* Font -------------------------------------------------------------------- */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Work+Sans:wght@400;500;600&display=swap');
 
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
-
-body, input, button, textarea, select {
-    font: 16px 'Roboto', sans-serif;
+:root {
+    --bg: #faf7f0;         /* page background, from papier.com */
+    --panel: #fffefa;      /* header/card background, from papier.com */
+    --ink: #2b2622;        /* near-black warm text, papier avoids pure #000 in body copy */
+    --muted: #8a8175;
+    --border: #e4ddd0;
+    --accent: #c98a5e;     /* warm terracotta — our own accent, used sparingly */
+    --danger: #b3462c;
 }
 
-/* Layout ------------------------------------------------------------------ */
+* { box-sizing: border-box; }
 
 body {
+    font-family: 'Work Sans', sans-serif;
+    font-size: 15px;
     margin: 0;
-    height: 100vh;
-    display: grid;
-    grid: auto auto 1fr auto / auto;
+    color: var(--ink);
+    background: var(--bg);
+    line-height: 1.5;
 }
 
-header, footer {
-    padding: 10px 50px;
-    background: #ccc;
+h1, h2, h3 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-weight: 600;
+    line-height: 1.2;
+    margin: 0 0 20px;
 }
 
-header h1 {
-    margin: 0;
-    padding-left: 40px;
-    background: url(/images/favicon.png) no-repeat left / 36px;
-}
+h1 { font-size: 34px; }
+h2 { font-size: 24px; margin-top: 40px; }
 
-header a {
-    color: inherit;
-    text-decoration: none;
-}
+a { color: var(--ink); }
 
-nav {
-    padding: 0 50px;
-    background: #999;
+/* ---------------------------------------------------------------------- */
+/* Header / Nav                                                            */
+/* ---------------------------------------------------------------------- */
+
+header nav {
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 32px;
     display: flex;
+    gap: 28px;
+    align-items: center;
 }
 
-nav a {
-    padding: 5px 10px;
-    color: #fff;
-    background: #666;
+header nav a {
     text-decoration: none;
-    white-space: nowrap;
+    font-size: 14px;
+    letter-spacing: 0.03em;
 }
 
-nav a:hover {
-    background: #333;
-}
+header nav a:hover { color: var(--accent); }
+header nav span { color: var(--muted); margin-left: auto; font-size: 14px; }
+
+/* ---------------------------------------------------------------------- */
+/* Layout                                                                   */
+/* ---------------------------------------------------------------------- */
 
 main {
-    padding: 20px 50px;
+    max-width: 1000px;
+    margin: 48px auto;
+    padding: 0 32px;
 }
 
-main h1 {
-    margin-top: 0;
+footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 32px 20px;
+    margin-top: 60px;
+    border-top: 1px solid var(--border);
 }
 
-/* Table ------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------- */
+/* Flash message                                                           */
+/* ---------------------------------------------------------------------- */
 
-.table {
-    border-collapse: collapse;
-}
-
-.table th, .table td {
-    border: 1px solid #333;
-    padding: 5px;
-}
-
-.table th {
+#flash {
+    position: fixed;
+    top: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--ink);
     color: #fff;
-    background: #666;
-}
-
-.table tr:hover td {
-    background: #ccc;
-}
-/* TODO */
-.table td:last-child {
-    position: relative;
-}
-
-.table .popup {
-    position: absolute;
-    top: 50%;
-    left: 100%;
-    translate: 5px -50%;
+    font-size: 14px;
+    padding: 12px 24px;
+    opacity: 0;
     z-index: 999;
-    border: 1px solid #333;
-    display: none;
 }
 
-.table tr:hover .popup {
-    display: block;
+#flash:not(:empty) {
+    animation: fade 5s ease-in-out;
 }
+
+@keyframes fade {
+    0%   { top: -100px; opacity: 0; }
+    10%  { top: 20px; opacity: 1; }
+    90%  { top: 20px; opacity: 1; }
+    100% { top: -100px; opacity: 0; }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Forms                                                                    */
+/* ---------------------------------------------------------------------- */
+
+.err { color: var(--danger); font-size: 0.85em; }
+.err-input { border-color: var(--danger) !important; }
+
+form { max-width: 480px; }
+
+form label {
+    display: block;
+    margin-top: 22px;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+}
+
+input[type=text], input[type=password], input[type=search],
+input[type=number], input[type=email], textarea, select {
+    font-family: inherit;
+    font-size: 15px;
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 0;
+    background: var(--panel);
+    color: var(--ink);
+}
+
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--ink);
+}
+
+textarea { resize: vertical; min-height: 70px; }
+
+form section, form > button, form > p {
+    margin-top: 28px;
+}
+
+button {
+    font-family: inherit;
+    font-size: 14px;
+    padding: 11px 28px;
+    border: 1px solid var(--ink);
+    border-radius: 0;
+    background: var(--ink);
+    color: #fff;
+    cursor: pointer;
+}
+
+button:hover { background: #000; border-color: #000; }
+button[type=reset] { background: transparent; color: var(--ink); border-color: var(--border); margin-left: 8px; }
+button[type=reset]:hover { border-color: var(--ink); }
+
+/* Photo upload */
+label.upload { display: inline-block; cursor: pointer; }
+label.upload img { display: block; width: 120px; height: 120px; object-fit: cover; border: 1px solid var(--border); }
+
+/* Status filter chips (e.g. order status filter) */
+main p a { color: var(--muted); text-decoration: none; padding: 4px 10px; font-size: 14px; }
+main p a.active { background: var(--ink); color: #fff; }
+
+/* ---------------------------------------------------------------------- */
+/* Tables                                                                   */
+/* ---------------------------------------------------------------------- */
+
+table.table { width: 100%; border-collapse: collapse; margin-top: 16px; background: var(--panel); font-size: 14px; }
+table.table th, table.table td { border-bottom: 1px solid var(--border); padding: 12px 10px; text-align: left; }
+table.table th { font-family: 'Work Sans', sans-serif; text-transform: uppercase; font-size: 12px; letter-spacing: 0.04em; color: var(--muted); font-weight: 500; }
+table.table th a { display: block; color: inherit; text-decoration: none; }
+table.table th a.asc::after { content: ' \25B4'; }
+table.table th a.desc::after { content: ' \25BE'; }
+
+/* Detail table (member/order detail pages) */
+table.detail { border-collapse: collapse; background: var(--panel); font-size: 14px; }
+table.detail th, table.detail td { border-bottom: 1px solid var(--border); padding: 12px 16px; text-align: left; }
+table.detail th { color: var(--muted); font-weight: 500; width: 160px; }
+
+/* Pager */
+.pager { margin-top: 16px; }
+.pager a { display: inline-block; min-width: 16px; text-align: center; padding: 6px 10px; margin-right: 4px; border: 1px solid var(--border); text-decoration: none; color: var(--ink); font-size: 13px; }
+.pager a.active { background: var(--ink); color: #fff; border-color: var(--ink); }

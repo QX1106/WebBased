@@ -1,8 +1,8 @@
-    </main>
+</main>
 
-    <footer>
-        Developed by <b>BAE SUZY</b> &middot;
-        Copyrighted &copy; <?= date('Y') ?>
-    </footer>
+<footer>
+    <p>&copy; <?= date('Y') ?> Stationary Online Store. All rights reserved.</p>
+</footer>
+
 </body>
 </html>
