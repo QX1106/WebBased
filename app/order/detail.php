@@ -21,6 +21,11 @@ if (is_post()) {
     if (!$_err) {
         $stm = $pdo->prepare("UPDATE orders SET order_status = ? WHERE order_id = ?");
         $stm->execute([$new_status, $id]);
+
+        // Log the change for the status timeline (Additional Module)
+        $stm = $pdo->prepare("INSERT INTO order_status_log (order_id, status) VALUES (?, ?)");
+        $stm->execute([$id, $new_status]);
+
         temp('info', 'Order status updated.');
         redirect("detail.php?id=$id");
     }
@@ -45,6 +50,12 @@ $stm = $pdo->prepare("SELECT oi.*, p.product_name
                        WHERE oi.order_id = ?");
 $stm->execute([$id]);
 $items = $stm->fetchAll();
+
+// Status timeline (Additional Module): "Order Placed" is always synthesized from
+// orders.order_date so the timeline never depends on how the order was created.
+$stm = $pdo->prepare("SELECT * FROM order_status_log WHERE order_id = ? ORDER BY changed_at ASC");
+$stm->execute([$id]);
+$log = $stm->fetchAll();
 
 // Sticky field: keep the attempted value on validation error, else current DB value
 $order_status = $_err ? ($new_status ?? '') : $order->order_status;
@@ -74,6 +85,14 @@ $order_status = $_err ? ($new_status ?? '') : $order->order_status;
         </tr>
     <?php endforeach; ?>
 </table>
+
+<h2>Status Timeline</h2>
+<ul class="timeline">
+    <li><b>Order Placed</b><span><?= h($order->order_date) ?></span></li>
+    <?php foreach ($log as $l): ?>
+        <li><b><?= h($l->status) ?></b><span><?= h($l->changed_at) ?></span></li>
+    <?php endforeach; ?>
+</ul>
 
 <h2>Update Status</h2>
 <form method="post">

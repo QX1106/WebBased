@@ -33,6 +33,7 @@ $pager = new SimplePager($pdo, $query, $params, 10, $page);
     <?= html_search('search', "placeholder='Search username or email'") ?>
     <button type="submit">Search</button>
     <a href="list.php">Reset</a>
+    <a href="export.php?search=<?= urlencode($search) ?>">Export CSV</a>
 </form>
 
 <p><?= $pager->item_count ?> member(s) found. Page <?= $pager->page ?> of <?= $pager->page_count ?>.</p>
@@ -56,7 +57,7 @@ $pager = new SimplePager($pdo, $query, $params, 10, $page);
                     <img src="/uploads/member/<?= h($m->photo) ?>" width="40" height="40">
                 <?php endif; ?>
             </td>
-            <td><a href="detail.php?id=<?= $m->member_id ?>">Detail</a></td>
+            <td><a href="detail.php?id=<?= $m->member_id ?>">Detail</a> · <a href="edit.php?id=<?= $m->member_id ?>">Edit</a></td>
         </tr>
     <?php endforeach; ?>
 </table>

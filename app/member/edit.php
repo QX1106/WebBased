@@ -1,16 +1,35 @@
 <?php require '../_base.php'; ?>
+<?php auth('Admin'); ?>
 <?php
 
 $_err = [];
+$id = get('id');
+
+$stm = $pdo->prepare("SELECT * FROM member WHERE member_id = ?");
+$stm->execute([$id]);
+$m = $stm->fetch();
+
+if (!$m) {
+    temp('info', 'Member not found.');
+    redirect('list.php');
+}
+
+$photo = $m->photo;
+
+if (is_get()) {
+    $username = $m->username;
+    $email = $m->email;
+    $phone = $m->phone;
+    $address = $m->address;
+}
 
 if (is_post()) {
-
     $username = post('username');
     $email = post('email');
-    $password = post('password');
-    $confirm = post('confirm');
     $phone = post('phone');
     $address = post('address');
+    $f = get_file('photo');
+    $remove_photo = post('remove_photo');
 
     // Validate: username
     if ($username == '') {
@@ -19,7 +38,7 @@ if (is_post()) {
         $_err['username'] = 'Maximum 50 characters';
     } elseif (!preg_match('/^[A-Za-z0-9_]{3,50}$/', $username)) {
         $_err['username'] = 'Only letters, numbers, underscore (min 3 characters)';
-    } elseif (!is_unique('member', 'username', $username)) {
+    } elseif (!is_unique('member', 'username', $username, $id, 'member_id')) {
         $_err['username'] = 'Username already taken';
     }
 
@@ -30,22 +49,8 @@ if (is_post()) {
         $_err['email'] = 'Maximum 100 characters';
     } elseif (!is_email($email)) {
         $_err['email'] = 'Invalid email format';
-    } elseif (!is_unique('member', 'email', $email)) {
+    } elseif (!is_unique('member', 'email', $email, $id, 'member_id')) {
         $_err['email'] = 'Email already registered';
-    }
-
-    // Validate: password
-    if ($password == '') {
-        $_err['password'] = 'Required';
-    } elseif (strlen($password) < 6 || strlen($password) > 100) {
-        $_err['password'] = 'Between 6-100 characters';
-    }
-
-    // Validate: confirm
-    if ($confirm == '') {
-        $_err['confirm'] = 'Required';
-    } elseif ($confirm !== $password) {
-        $_err['confirm'] = 'Passwords do not match';
     }
 
     // Validate: phone (Malaysian format — mobile/landline, optional +60/60/0 prefix)
@@ -62,7 +67,7 @@ if (is_post()) {
         $_err['address'] = 'Maximum 255 characters';
     }
 
-    $f = get_file('photo');
+    // Validate: photo (optional — only checked if a new file is selected)
     if ($f) {
         if (!str_starts_with($f->type, 'image/')) {
             $_err['photo'] = 'Must be an image file';
@@ -74,22 +79,41 @@ if (is_post()) {
     }
 
     if (!$_err) {
-        // Only touch the filesystem once every other field has passed validation
-        $photo = $f ? save_photo($f, 'uploads/member', 200, 200) : null;
+        $new_photo = $m->photo;
 
-        $stm = $pdo->prepare("INSERT INTO member (username, email, password, phone, address, photo, role, status, created_at)
-                               VALUES (?, ?, ?, ?, ?, ?, 'Member', 'Active', NOW())");
-        $stm->execute([$username, $email, password_hash($password, PASSWORD_DEFAULT), $phone, $address, $photo]);
+        // Replace photo only if a new file was uploaded; otherwise honor "remove photo"
+        if ($f) {
+            if ($m->photo && file_exists(root("uploads/member/{$m->photo}"))) {
+                unlink(root("uploads/member/{$m->photo}"));
+            }
+            $new_photo = save_photo($f, 'uploads/member', 200, 200);
+        } elseif ($remove_photo && $m->photo) {
+            if (file_exists(root("uploads/member/{$m->photo}"))) {
+                unlink(root("uploads/member/{$m->photo}"));
+            }
+            $new_photo = null;
+        }
 
-        temp('info', 'Registration successful. Please login.');
-        redirect('/user/login.php');
+        $stm = $pdo->prepare("UPDATE member SET username = ?, email = ?, phone = ?, address = ?, photo = ? WHERE member_id = ?");
+        $stm->execute([$username, $email, $phone, $address, $new_photo, $id]);
+
+        // If the admin edited their own account, refresh the session copy too
+        // (nav/sidebar reads $_user from the session, not a fresh DB query)
+        if ($_user && $id == $_user->member_id) {
+            $stm = $pdo->prepare("SELECT * FROM member WHERE member_id = ?");
+            $stm->execute([$id]);
+            $_SESSION['user'] = $stm->fetch();
+        }
+
+        temp('info', 'Member updated.');
+        redirect("detail.php?id=$id");
     }
 }
 
 ?>
 <?php require '../_head.php'; ?>
 
-<h1>Member Registration</h1>
+<h1>Edit Member</h1>
 
 <form method="post" enctype="multipart/form-data" novalidate>
 
@@ -101,14 +125,6 @@ if (is_post()) {
     <?= err('email') ?>
     <?= html_text('email', "maxlength='100'") ?>
 
-    <label for="password">Password</label>
-    <?= err('password') ?>
-    <?= html_password('password', "maxlength='100'") ?>
-
-    <label for="confirm">Confirm Password</label>
-    <?= err('confirm') ?>
-    <?= html_password('confirm', "maxlength='100'") ?>
-
     <label for="phone">Phone</label>
     <?= err('phone') ?>
     <?= html_text('phone', "maxlength='20'") ?>
@@ -119,11 +135,19 @@ if (is_post()) {
 
     <label for="photo">Profile Photo</label>
     <?= err('photo') ?>
+    <?php if ($photo): ?>
+        <img src="/uploads/member/<?= h($photo) ?>" width="80" height="80"><br>
+        <?= html_checkbox('remove_photo', 'Remove current photo') ?>
+    <?php endif; ?>
     <?= html_file('photo', 'image/*') ?>
+    <small>Leave empty to keep the current photo.</small>
 
-    <br><br>
-    <button type="submit">Register</button>
-    <button type="reset">Reset</button>
+    <section>
+        <button type="submit">Save</button>
+        <button type="reset">Reset</button>
+    </section>
 </form>
+
+<p><a href="detail.php?id=<?= h($id) ?>">Back to Member Detail</a></p>
 
 <?php require '../_foot.php'; ?>
