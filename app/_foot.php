@@ -1,4 +1,9 @@
+<?php if ($_user && $_user->role == 'Admin'): ?>
+        </main>
+    </div>
+<?php else: ?>
 </main>
+<?php endif; ?>
 
 <footer>
     <p>&copy; <?= date('Y') ?> Stationary Online Store. All rights reserved.</p>
