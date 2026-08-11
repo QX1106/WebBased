@@ -17,7 +17,7 @@ $order_stats = $pdo->query("SELECT
                  AND order_status != 'Cancelled' THEN total_amount ELSE 0 END) AS this_month_revenue
     FROM orders")->fetch();
 
-// Revenue trend 
+// Revenue trend (Additional Module): selectable range, cancelled orders excluded
 $range = (int) get('range', 6);
 if (!in_array($range, [3, 6, 12], true)) $range = 6;
 

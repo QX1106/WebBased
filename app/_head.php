@@ -12,21 +12,39 @@
 
 <div id="flash"><?= h(temp('info')) ?></div>
 
+<?php if ($_user && $_user->role == 'Admin'): ?>
+    <?php $_path = $_SERVER['REQUEST_URI']; ?>
+    <div class="admin-layout">
+        <aside class="sidebar">
+            <a href="/" class="brand">Stationary Online Store</a>
+            <nav>
+                <a href="/dashboard.php" class="<?= $_path == '/dashboard.php' ? 'active' : '' ?>">Dashboard</a>
+                <a href="/member/list.php" class="<?= str_starts_with($_path, '/member') ? 'active' : '' ?>">Members</a>
+                <a href="/order/list.php" class="<?= str_starts_with($_path, '/order') ? 'active' : '' ?>">Orders</a>
+                <a href="/product/list.php" class="<?= str_starts_with($_path, '/product') ? 'active' : '' ?>">Products</a>
+            </nav>
+            <div class="sidebar-foot">
+                <div class="user-chip">
+                    <?= user_avatar($_user, 32) ?>
+                    <span><?= h($_user->username) ?> (<?= h($_user->role) ?>)</span>
+                </div>
+                <a href="/user/logout.php">Logout</a>
+            </div>
+        </aside>
+        <main>
+<?php else: ?>
+
 <header>
     <nav>
         <a href="/">Stationary Online Store</a>
         <a href="/product/list.php">Products</a>
 
         <?php if ($_user): ?>
-            <?php if ($_user->role == 'Admin'): ?>
-                <a href="/member/list.php">Members</a>
-                <a href="/order/list.php">Orders (Admin)</a>
-            <?php endif; ?>
             <?php if ($_user->role == 'Member'): ?>
                 <a href="/cart/index.php">Cart</a>
                 <a href="/order/history.php">My Orders</a>
             <?php endif; ?>
-            <span><?= h($_user->username) ?> (<?= h($_user->role) ?>)</span>
+            <span class="user-chip"><?= user_avatar($_user, 28) ?> <?= h($_user->username) ?> (<?= h($_user->role) ?>)</span>
             <a href="/user/logout.php">Logout</a>
         <?php else: ?>
             <a href="/user/login.php">Login</a>
@@ -36,3 +54,4 @@
 </header>
 
 <main>
+<?php endif; ?>

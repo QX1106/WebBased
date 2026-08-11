@@ -25,7 +25,7 @@ class SimplePager {
         $html = "<div class='pager'>";
         for ($i = 1; $i <= $this->page_count; $i++) {
             $class = ($i == $this->page) ? 'active' : '';
-            $html .= "<a class='$class' href='?page=$i$href'>$i</a>";
+            $html .= "<a class='$class' href='" . htmlspecialchars("?page=$i$href", ENT_QUOTES) . "'>$i</a>";
         }
         $html .= "</div>";
         return $html;
