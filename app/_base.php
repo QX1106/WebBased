@@ -8,8 +8,7 @@ $_title = 'Stationary Online Store';
 // =========================================================
 // DATABASE (PDO)
 // =========================================================
-// TODO: confirm db name matches your phpMyAdmin (currently "stationary_yn")
-$pdo = new PDO('mysql:dbname=stationary_yn', 'root', '', [
+$pdo = new PDO('mysql:dbname=stationary_db', 'root', '', [
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_OBJ,
 ]);
 
@@ -81,7 +80,7 @@ function temp($key, $value = null) {
 // SECURITY (LOGIN / LOGOUT / AUTH)
 // =========================================================
 // NOTE: our member table has NO admin role mixed with member accounts
-// unless you decide role column in `member` covers both. Confirm with team.
+// unless you decide role column in `member` covers both. 
 $_user = $_SESSION['user'] ?? null;
 
 function login($user, $url = '/') {
@@ -109,6 +108,25 @@ function auth(...$roles) {
 // =========================================================
 function h($value) {
     return htmlspecialchars($value ?? '', ENT_QUOTES);
+}
+
+// Neutralize CSV/formula injection: a field starting with =, +, -, @ can be
+// executed as a formula by Excel/Sheets when the exported CSV is opened.
+function csv_safe($value) {
+    $value = (string)($value ?? '');
+    if (preg_match('/^[=+\-@]/', $value)) {
+        return "'" . $value;
+    }
+    return $value;
+}
+
+// Small avatar for the logged-in user (photo if uploaded, else initial letter)
+function user_avatar($u, $size = 32) {
+    if ($u->photo) {
+        return "<img src='/uploads/member/" . h($u->photo) . "' width='$size' height='$size' class='avatar'>";
+    }
+    $initial = h(strtoupper(substr($u->username, 0, 1)));
+    return "<span class='avatar avatar-fallback' style='width:{$size}px;height:{$size}px;line-height:{$size}px;'>$initial</span>";
 }
 
 function html_text($key, $attr = '') {
@@ -180,9 +198,9 @@ function html_select($key, $options, $blank = '- Select One -', $attr = '') {
 function err($key) {
     global $_err;
     if (isset($_err[$key])) {
-        return "<span class='err'>" . h($_err[$key]) . "</span>";
+        return "<span class='err' id='err_$key'>" . h($_err[$key]) . "</span>";
     }
-    return "<span></span>";
+    return "<span id='err_$key'></span>";
 }
 
 // =========================================================
@@ -233,7 +251,7 @@ function table_headers($fields, $sort, $dir, $href = '') {
             $class = $dir;
             $new_dir = ($dir == 'asc') ? 'desc' : 'asc';
         }
-        $html .= "<th><a class='$class' href='?sort=$key&dir=$new_dir$href'>" . h($label) . "</a></th>";
+        $html .= "<th><a class='$class' href='" . h("?sort=$key&dir=$new_dir$href") . "'>" . h($label) . "</a></th>";
     }
     return $html;
 }
