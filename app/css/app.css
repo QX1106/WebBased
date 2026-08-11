@@ -269,6 +269,66 @@ header nav .user-chip { display: inline-flex; }
     padding: 40px 48px;
 }
 
+/* Narrow screens: collapse the fixed sidebar into a top bar, like the
+   guest/member header, and let wide tables scroll horizontally instead
+   of forcing the whole page to overflow. */
+@media (max-width: 768px) {
+    .sidebar {
+        position: static;
+        width: 100%;
+        height: auto;
+        min-height: 0;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        padding: 12px 16px;
+    }
+
+    .sidebar .brand {
+        padding: 0;
+        margin: 0 auto 0 0;
+        border-bottom: none;
+    }
+
+    .sidebar nav {
+        flex-direction: row;
+        flex: 0 0 auto;
+    }
+
+    .sidebar nav a {
+        padding: 6px 10px;
+        border-left: none;
+        border-bottom: 3px solid transparent;
+    }
+
+    .sidebar nav a.active {
+        border-left-color: transparent;
+        border-bottom-color: var(--ink);
+    }
+
+    .sidebar-foot {
+        flex-direction: row;
+        align-items: center;
+        gap: 12px;
+        margin: 0 0 0 12px;
+        padding: 0;
+        border-top: none;
+    }
+
+    .admin-layout main {
+        margin-left: 0;
+        padding: 24px 16px;
+    }
+
+    table.table, table.detail {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+}
+
 /* Dashboard stat cards */
 .stats { display: flex; gap: 16px; margin: 24px 0; flex-wrap: wrap; }
 .stat {
