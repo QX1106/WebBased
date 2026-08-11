@@ -8,10 +8,10 @@ $_title = 'Stationary Online Store';
 // =========================================================
 // DATABASE (PDO)
 // =========================================================
-// TODO: confirm db name matches your phpMyAdmin (currently "stationary_yn")
-$pdo = new PDO('mysql:dbname=stationary_yn', 'root', '', [
+$pdo = new PDO('mysql:dbname=stationary_db', 'root', '', [
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_OBJ,
 ]);
+
 
 // =========================================================
 // PATH / URL HELPERS
