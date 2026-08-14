@@ -22,6 +22,8 @@
                 <a href="/member/list.php" class="<?= str_starts_with($_path, '/member') ? 'active' : '' ?>">Members</a>
                 <a href="/order/list.php" class="<?= str_starts_with($_path, '/order') ? 'active' : '' ?>">Orders</a>
                 <a href="/product/list.php" class="<?= str_starts_with($_path, '/product') ? 'active' : '' ?>">Products</a>
+                <!-- TEMP: remove once /product/list.php is built -->
+                <a href="/product/admin-draft.php">Product (Admin Draft)</a>
             </nav>
             <div class="sidebar-foot">
                 <div class="user-chip">
@@ -50,6 +52,9 @@
             <a href="/user/login.php">Login</a>
             <a href="/member/register.php">Register</a>
         <?php endif; ?>
+
+        <!-- TEMP: remove once /product/list.php is built -->
+        <a href="/product/admin-draft.php">Product (Admin Draft)</a>
     </nav>
 </header>
 
