@@ -1,5 +1,5 @@
 <?php require '_base.php'; ?>
-<?php auth('Admin'); ?>
+<?php // auth('Admin'); // TODO: re-enable once JW login page is ready ?>
 <?php
 
 $member_stats = $pdo->query("SELECT
@@ -60,6 +60,12 @@ $chart_max = max(max($months), 1);
     <div class="stat"><b>RM <?= number_format($order_stats->this_month_revenue, 2) ?></b><span>Revenue This Month</span></div>
 </div>
 <p><a href="/order/list.php">View Order Maintenance</a></p>
+
+<h2>Product Maintenance (Admin Draft)</h2>
+<p>
+    <!-- temporarily for admin product listing (draft) -->
+    <a href="/product/admin-draft.php">View Product Maintenance (Admin Draft)</a>
+</p>
 
 <h2 id="revenue-trend">Revenue Trend</h2>
 
