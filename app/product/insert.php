@@ -1,6 +1,35 @@
 <?php require '../_base.php'; ?>
-<?php // auth('Admin'); // TODO: re-enable once login page (teammate's part) is ready ?>
+<?php // auth('Admin'); // TODO: re-enable once JW login page is ready ?>
 <?php
+
+function youtube_video_exists($url) {
+    $api = 'https://www.youtube.com/oembed?url=' . urlencode($url) . '&format=json';
+    $context = stream_context_create(['http' => ['timeout' => 4, 'ignore_errors' => true]]);
+    $result = @file_get_contents($api, false, $context);
+    if ($result === false || !isset($http_response_header[0])) {
+        return null;
+    }
+    return (bool) preg_match('/\s200\s/', $http_response_header[0]);
+}
+
+
+function get_files($key) {
+    $out = [];
+    if (!empty($_FILES[$key]) && is_array($_FILES[$key]['name'])) {
+        foreach ($_FILES[$key]['name'] as $i => $filename) {
+            if ($_FILES[$key]['error'][$i] === UPLOAD_ERR_OK) {
+                $out[] = (object) [
+                    'name'     => $filename,
+                    'type'     => $_FILES[$key]['type'][$i],
+                    'tmp_name' => $_FILES[$key]['tmp_name'][$i],
+                    'error'    => $_FILES[$key]['error'][$i],
+                    'size'     => $_FILES[$key]['size'][$i],
+                ];
+            }
+        }
+    }
+    return $out;
+}
 
 $categories = $pdo->query("SELECT id, name FROM category ORDER BY name")
                    ->fetchAll(PDO::FETCH_KEY_PAIR);
@@ -13,6 +42,7 @@ if (is_post()) {
     $price       = post('price');
     $stock_qty   = post('stock_qty');
     $description = post('description');
+    $video_url   = post('video_url');
 
     if ($name == '') {
         $_err['name'] = 'Name is required';
@@ -38,6 +68,22 @@ if (is_post()) {
         $_err['stock_qty'] = 'Stock quantity must be a whole number, 0 or more';
     }
 
+    
+    if ($video_url != '') {
+        if (!preg_match('/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))[a-zA-Z0-9_-]{11}/', $video_url)) {
+            $_err['video_url'] = 'Enter a valid YouTube link, e.g. https://youtu.be/dQw4w9WgXcQ';
+        } else {
+            $exists = youtube_video_exists($video_url);
+            if ($exists === false) {
+                $_err['video_url'] = 'This YouTube video is unavailable, private, or was removed.';
+            }
+          
+        }
+    }
+
+    // ---- Multiple gallery photos (optional, in addition to the cover photo)
+    $gallery_files = get_files('gallery');
+
     // ---- Practical 6: file type + size validation --------------------------
     $f = get_file('photo');
     if (!$f) {
@@ -52,18 +98,32 @@ if (is_post()) {
         // Practical 6: crop/resize to 400x300, save to 'photos' folder
         $photo = save_photo($f, 'photos', 400, 300);
 
-        // Rename to something readable: <product-name-slug>-<short-unique>.jpg
-        // The random suffix still guarantees no filename collisions —
-        // we're just making it easier to recognize at a glance.
+        
         $slug = strtolower(preg_replace('/[^a-z0-9]+/i', '-', trim($name)));
         $slug = trim($slug, '-');
         $new_photo = $slug . '-' . substr(uniqid(), -6) . '.jpg';
         rename(root("photos/$photo"), root("photos/$new_photo"));
         $photo = $new_photo;
 
-        $stm = $pdo->prepare("INSERT INTO product (name, category_id, price, stock_qty, description, photo)
-                               VALUES (?, ?, ?, ?, ?, ?)");
-        $stm->execute([$name, $category_id, $price, $stock_qty, $description, $photo]);
+        $stm = $pdo->prepare("INSERT INTO product (name, category_id, price, stock_qty, description, photo, video_url)
+                               VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stm->execute([$name, $category_id, $price, $stock_qty, $description, $photo, $video_url ?: null]);
+        $product_id = $pdo->lastInsertId();
+
+        // Save any extra gallery photos (but it cannot be multiple photos)
+        
+        $order = 0;
+        foreach ($gallery_files as $gf) {
+            if (strpos($gf->type, 'image/') !== 0 || $gf->size > 1 * 1024 * 1024) {
+                continue;
+            }
+            $gphoto = save_photo($gf, 'photos', 400, 300);
+            $gslug = $slug . '-gallery-' . substr(uniqid(), -6) . '.jpg';
+            rename(root("photos/$gphoto"), root("photos/$gslug"));
+
+            $gstm = $pdo->prepare("INSERT INTO product_photo (product_id, photo, sort_order) VALUES (?, ?, ?)");
+            $gstm->execute([$product_id, $gslug, $order++]);
+        }
 
         temp('info', "Product '$name' added successfully.");
         redirect('/product/admin-draft.php');
@@ -81,11 +141,19 @@ require '../_head.php';
         <tr>
             <td>Photo</td>
             <td>
-                <label class="upload" tabindex="0">
-                    <img src="/images/placeholder.png" data-src="/images/placeholder.png">
+                <label class="upload" id="upload-zone" tabindex="0">
+                    <img src="/images/placeholder.png" data-src="/images/placeholder.png" id="upload-preview">
                     <?= html_file('photo', 'image/*', 'hidden') ?>
                 </label>
+                <p class="hint">This is the cover photo shown in the listing. Click to browse, or drag &amp; drop.</p>
                 <?= err('photo') ?>
+            </td>
+        </tr>
+        <tr>
+            <td>Additional Photos</td>
+            <td>
+                <input type="file" id="gallery" name="gallery[]" accept="image/*" multiple>
+                <p class="hint">Optional — pick several images for the product's photo gallery (max 1MB each).</p>
             </td>
         </tr>
         <tr>
@@ -115,6 +183,13 @@ require '../_head.php';
             <td><?= html_textarea('description') ?></td>
         </tr>
         <tr>
+            <td>YouTube Video</td>
+            <td>
+                <?= html_text('video_url', "placeholder='https://youtu.be/... (optional)'") ?>
+                <?= err('video_url') ?>
+            </td>
+        </tr>
+        <tr>
             <td></td>
             <td>
                 <button>Save</button>
@@ -125,9 +200,8 @@ require '../_head.php';
 </form>
 
 <script>
-// ---- Live (client-side) validation, mirrors the server-side rules above.
-// This is purely UX feedback — the PHP checks above still run on submit
-// and are the real source of truth (never trust client-side alone).
+// ---- Live (client-side) validation
+
 (function () {
     function setErr(id, msg) {
         var el = document.getElementById('err_' + id);
@@ -177,7 +251,57 @@ require '../_head.php';
             }
         });
     }
+
+    var videoUrl = document.getElementById('video_url');
+    if (videoUrl) {
+        videoUrl.addEventListener('blur', function () {
+            var v = this.value.trim();
+            if (v === '') {
+                setErr('video_url', '');
+                return;
+            }
+            var ok = /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))[a-zA-Z0-9_-]{11}/.test(v);
+            setErr('video_url', ok ? '' : 'Enter a valid YouTube link, e.g. https://youtu.be/dQw4w9WgXcQ');
+        });
+    }
+
+    // ---- Drag-and-drop photo upload ----------------------------------- (not fucntion at all)
+    var zone = document.getElementById('upload-zone');
+    if (zone) {
+        var fileInput = zone.querySelector('input[type=file]');
+        var preview = document.getElementById('upload-preview');
+
+        ['dragenter', 'dragover'].forEach(function (evt) {
+            zone.addEventListener(evt, function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                zone.classList.add('drag-over');
+            });
+        });
+        ['dragleave', 'drop'].forEach(function (evt) {
+            zone.addEventListener(evt, function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                zone.classList.remove('drag-over');
+            });
+        });
+        zone.addEventListener('drop', function (e) {
+            var files = e.dataTransfer.files;
+            if (files && files.length) {
+                fileInput.files = files;
+                
+                if (preview && files[0].type.indexOf('image/') === 0) {
+                    preview.src = URL.createObjectURL(files[0]);
+                }
+                fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        });
+    }
 })();
 </script>
+
+<style>
+    #upload-zone.drag-over { outline: 2px dashed #4a90d9; outline-offset: 2px; }
+</style>
 
 <?php require '../_foot.php'; ?>
