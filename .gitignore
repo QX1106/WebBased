@@ -1,0 +1,2 @@
+app/uploads/member/*
+!app/uploads/member/.gitkeep

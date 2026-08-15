@@ -203,9 +203,35 @@ form.search-bar button, form.search-bar a { margin-top: 0; }
 }
 .btn-accent:hover { background: #f0d0bd; text-decoration: none; }
 
-/* Photo upload */
-label.upload { display: inline-block; cursor: pointer; }
-label.upload img { display: block; width: 120px; height: 120px; object-fit: cover; border: 1px solid var(--border); }
+/* Photo upload — click anywhere in the zone or drag & drop a file onto it;
+   the native file input stays in the DOM (drag & drop needs it) but hidden,
+   since the whole zone now acts as the picker trigger. */
+.photo-drop {
+    width: 160px;
+    padding: 16px;
+    text-align: center;
+    background: var(--panel);
+    border: 2px dashed var(--border);
+    cursor: pointer;
+}
+.photo-drop:hover { border-color: var(--muted); }
+.photo-drop.dragover { border-color: var(--accent); background: var(--accent-soft); }
+.photo-drop img { display: block; width: 120px; height: 120px; object-fit: cover; margin: 0 auto 10px; border: 1px solid var(--border); }
+.photo-drop-hint { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+.photo-drop-hint small { color: var(--muted); }
+
+.photo-drop-clear {
+    display: none;
+    margin-top: 4px;
+    padding: 0;
+    background: none;
+    border: none;
+    color: var(--danger);
+    font-size: 12px;
+    text-decoration: underline;
+    cursor: pointer;
+}
+.photo-drop-clear:hover { background: none; border-color: transparent; color: #8f371f; }
 
 form small { display: block; margin-top: 8px; color: var(--muted); font-size: 12px; }
 form input[type=checkbox] { margin-top: 8px; }
@@ -451,20 +477,60 @@ form.filters label { font-size: 12px; color: var(--muted); }
 form.filters input[type=search] { width: 260px; }
 form.filters button, form.filters a { margin-top: 0; }
 
-/* Status timeline (order status log) */
-ul.timeline { list-style: none; margin: 16px 0; padding: 0; border-left: 2px solid var(--border); }
-ul.timeline li { position: relative; padding: 0 0 18px 20px; font-size: 14px; }
+/* Status timeline (order status log) — Shopee/Pinduoduo style: the full
+   expected sequence is always shown, including steps not reached yet, so
+   progress is visible at a glance instead of just a log of what happened. */
+ul.timeline { list-style: none; margin: 16px 0; padding: 0; }
+ul.timeline li { position: relative; padding: 0 0 22px 26px; font-size: 14px; }
+ul.timeline li:last-child { padding-bottom: 0; }
+
 ul.timeline li::before {
     content: '';
     position: absolute;
-    left: -6px;
-    top: 4px;
-    width: 10px;
-    height: 10px;
-    background: var(--ink);
+    left: 0;
+    top: 3px;
+    width: 12px;
+    height: 12px;
+    box-sizing: border-box;
+    background: var(--panel);
+    border: 2px solid var(--border);
     border-radius: 50%;
 }
-ul.timeline li:last-child { padding-bottom: 0; }
+ul.timeline li::after {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 17px;
+    bottom: 0;
+    width: 2px;
+    background: var(--border);
+}
+ul.timeline li:last-child::after { display: none; }
+
+/* Reached steps (already happened): filled dot, solid connecting line */
+ul.timeline li.done::before { background: var(--ink); border-color: var(--ink); }
+ul.timeline li.done::after,
+ul.timeline li.current::after { background: var(--ink); }
+
+/* Current step: bigger accent dot with a soft ring, so it stands out as "you are here" */
+ul.timeline li.current::before {
+    left: -1px;
+    top: 2px;
+    width: 14px;
+    height: 14px;
+    background: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+/* Future steps: not reached yet — hollow dot, muted text */
+ul.timeline li.future b,
+ul.timeline li.future span { color: var(--muted); font-weight: 400; }
+
+/* Cancelled: red dot and label instead of continuing the normal flow */
+ul.timeline li.cancelled::before { background: var(--danger); border-color: var(--danger); }
+ul.timeline li.cancelled b { color: var(--danger); }
+
 ul.timeline li b { display: inline-block; min-width: 110px; }
 ul.timeline li span { color: var(--muted); }
 
@@ -480,3 +546,52 @@ svg.chart .chart-value { font-family: 'Work Sans', sans-serif; font-size: 11px; 
 .pager a { display: inline-block; min-width: 16px; text-align: center; padding: 6px 10px; margin-right: 4px; border: 1px solid var(--border); text-decoration: none; color: var(--ink); font-size: 13px; }
 .pager a:hover { text-decoration: none; border-color: var(--ink); }
 .pager a.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+/* ---------------------------------------------------------------------- */
+/* Print (order receipt) — "Download Receipt" opens the browser print       */
+/* dialog; the user saves it as a PDF. Hidden on screen, only shown when   */
+/* printing, styled like an actual receipt instead of reusing admin tables.*/
+/* ---------------------------------------------------------------------- */
+.receipt { display: none; }
+
+.receipt-store { text-align: center; padding-bottom: 14px; }
+.receipt-store-name { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 600; }
+.receipt-store-sub { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-top: 4px; }
+
+.receipt-divider { border-top: 1px dashed var(--border); margin: 14px 0; }
+
+.receipt-row { display: flex; justify-content: space-between; gap: 16px; font-size: 13px; padding: 3px 0; }
+.receipt-row span:first-child { color: var(--muted); }
+.receipt-row span:last-child { text-align: right; }
+
+.receipt-items { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
+.receipt-items th {
+    text-align: left;
+    border-bottom: 1px solid var(--ink);
+    padding: 4px 0;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+}
+.receipt-items th:not(:first-child), .receipt-items td:not(:first-child) { text-align: right; }
+.receipt-items td { padding: 6px 0; border-bottom: 1px solid var(--border); }
+
+.receipt-total { display: flex; justify-content: space-between; font-size: 17px; font-weight: 600; padding-top: 2px; }
+
+.receipt-footer { text-align: center; font-size: 12px; color: var(--muted); margin-top: 28px; }
+
+@media print {
+    .sidebar, .admin-topbar, header nav, #flash, footer, .no-print {
+        display: none !important;
+    }
+    body.sidebar-hidden .admin-layout main,
+    .admin-layout main {
+        margin-left: 0 !important;
+    }
+    .receipt {
+        display: block;
+        max-width: 480px;
+        margin: 0 auto;
+    }
+}

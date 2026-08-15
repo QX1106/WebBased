@@ -66,8 +66,8 @@ if (is_post()) {
     if ($f) {
         if (!str_starts_with($f->type, 'image/')) {
             $_err['photo'] = 'Must be an image file';
-        } elseif ($f->size > 1 * 1024 * 1024) {
-            $_err['photo'] = 'Max size 1MB';
+        } elseif ($f->size > 3 * 1024 * 1024) {
+            $_err['photo'] = 'Max size 3MB';
         } elseif (!getimagesize($f->tmp_name)) {
             $_err['photo'] = 'File is not a valid image';
         }
@@ -117,9 +117,14 @@ if (is_post()) {
     <?= err('address') ?>
     <?= html_textarea('address', "maxlength='255'") ?>
 
-    <label for="photo">Profile Photo</label>
+    <label>Profile Photo</label>
     <?= err('photo') ?>
-    <?= html_file('photo', 'image/*') ?>
+    <div class="photo-drop" tabindex="0" role="button" aria-label="Upload profile photo">
+        <img style="display:none">
+        <div class="photo-drop-hint">Drag &amp; drop a photo here, or click to browse<br><small>Max 3MB</small></div>
+        <?= html_file('photo', 'image/*', "style='display:none'") ?>
+        <button type="button" class="photo-drop-clear">✕ Clear selection</button>
+    </div>
 
     <br><br>
     <button type="submit">Register</button>
