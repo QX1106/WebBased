@@ -1,5 +1,5 @@
 <?php require '../_base.php'; ?>
-<?php // auth('Admin'); // TODO: re-enable once JW login page is ready ?>
+<?php // auth('Admin'); // TODO: re-enable once login page (teammate's part) is ready ?>
 <?php
 
 $id = get('id');
@@ -16,17 +16,6 @@ if (!$product) {
     redirect('/product/admin-draft.php');
 }
 
-$_title = 'Product Detail (Admin Draft)';
-require '../_head.php';
-?>
-
-<div class="admin-draft-notice" style="background:#fff3cd; border:1px solid #ffe08a; padding:8px 12px; margin-bottom:12px;">
-    <strong>Admin Draft</strong> — temporary page for testing before login/auth is wired up.
-</div>
-
-<h1>Product Detail</h1>
-
-<?php
 function youtube_embed_url($url) {
     if ($url && preg_match('/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([a-zA-Z0-9_-]{11})/', $url, $m)) {
         return 'https://www.youtube.com/embed/' . $m[1];
@@ -45,49 +34,71 @@ if ($product->photo) {
 foreach ($gallery_stm->fetchAll() as $gp) {
     $all_photos[] = $gp->photo;
 }
+
+// ---- Build one combined slide list: video first (if any), then photos -----
+// Shopee/Lazada-style: video is slide 0, photos follow.
+$slides = [];
+if ($embed_url) {
+    $slides[] = ['type' => 'video', 'src' => $embed_url];
+}
+foreach ($all_photos as $ph) {
+    $slides[] = ['type' => 'image', 'src' => "/photos/$ph"];
+}
+
+$_title = 'Product Detail (Admin Draft)';
+require '../_head.php';
 ?>
 
-<table class="form-table">
-    <tr>
-        <td>Photo</td>
-        <td>
-            <?php if ($all_photos): ?>
-            <div id="slider" style="max-width:320px;">
-                <img id="slider-img" src="/photos/<?= h($all_photos[0]) ?>" width="320" height="240" style="display:block; border:1px solid #ddd;">
-                <?php if (count($all_photos) > 1): ?>
-                <div style="display:flex; justify-content:space-between; margin-top:6px;">
-                    <button type="button" id="slider-prev">&larr; Prev</button>
-                    <span id="slider-count">1 / <?= count($all_photos) ?></span>
-                    <button type="button" id="slider-next">Next &rarr;</button>
-                </div>
-                <div style="display:flex; gap:4px; margin-top:6px; flex-wrap:wrap;">
-                    <?php foreach ($all_photos as $i => $ph): ?>
-                    <img src="/photos/<?= h($ph) ?>" width="50" height="38"
-                         class="slider-thumb" data-index="<?= $i ?>"
-                         style="cursor:pointer; border:1px solid #ccc;">
-                    <?php endforeach; ?>
-                </div>
-                <?php endif; ?>
-            </div>
+<div class="admin-draft-notice" style="background:#fff3cd; border:1px solid #ffe08a; padding:8px 12px; margin-bottom:12px;">
+    <strong>Admin Draft</strong> — temporary page for testing before login/auth is wired up.
+</div>
+
+<h1>Product Detail</h1>
+
+<?php if ($slides): ?>
+<div id="slider" style="max-width:400px;">
+    <div id="slides" style="border:1px solid #ddd;">
+        <?php foreach ($slides as $i => $slide): ?>
+        <div class="slide" data-index="<?= $i ?>" style="<?= $i === 0 ? '' : 'display:none;' ?>">
+            <?php if ($slide['type'] === 'video'): ?>
+                <iframe width="400" height="300" src="<?= h($slide['src']) ?>" frameborder="0" allowfullscreen></iframe>
             <?php else: ?>
-                <span class="no-photo">No Photo</span>
+                <img src="<?= h($slide['src']) ?>" width="400" height="300">
             <?php endif; ?>
-        </td>
-    </tr>
+        </div>
+        <?php endforeach; ?>
+    </div>
+
+    <?php if (count($slides) > 1): ?>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
+        <button type="button" id="slider-prev">&larr; Prev</button>
+        <span id="slider-count">1 / <?= count($slides) ?></span>
+        <button type="button" id="slider-next">Next &rarr;</button>
+    </div>
+    <div style="display:flex; gap:4px; margin-top:6px; flex-wrap:wrap;">
+        <?php foreach ($slides as $i => $slide): ?>
+            <?php if ($slide['type'] === 'video'): ?>
+            <div class="slider-thumb" data-index="<?= $i ?>"
+                 style="cursor:pointer; width:50px; height:38px; background:#000; color:#fff;
+                        display:flex; align-items:center; justify-content:center; font-size:16px;">&#9654;</div>
+            <?php else: ?>
+            <img src="<?= h($slide['src']) ?>" width="50" height="38"
+                 class="slider-thumb" data-index="<?= $i ?>" style="cursor:pointer; border:1px solid #ccc;">
+            <?php endif; ?>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+</div>
+<?php else: ?>
+<span class="no-photo">No Photo</span>
+<?php endif; ?>
+
+<table class="form-table">
     <tr><td>Name</td><td><?= h($product->name) ?></td></tr>
     <tr><td>Category</td><td><?= h($product->category_name) ?></td></tr>
     <tr><td>Price</td><td>RM <?= number_format($product->price, 2) ?></td></tr>
     <tr><td>Stock Qty</td><td><?= $product->stock_qty ?></td></tr>
     <tr><td>Description</td><td><?= nl2br(h($product->description)) ?></td></tr>
-    <?php if ($embed_url): ?>
-    <tr>
-        <td>Video</td>
-        <td>
-            <iframe width="320" height="180" src="<?= h($embed_url) ?>"
-                    frameborder="0" allowfullscreen></iframe>
-        </td>
-    </tr>
-    <?php endif; ?>
 </table>
 
 <p>
@@ -96,18 +107,20 @@ foreach ($gallery_stm->fetchAll() as $gp) {
     <a href="/product/admin-draft.php">Back to List</a>
 </p>
 
-<?php if (count($all_photos) > 1): ?>
+<?php if (count($slides) > 1): ?>
 <script>
 (function () {
-    var photos = <?= json_encode(array_map(fn($p) => "/photos/$p", $all_photos)) ?>;
     var idx = 0;
-    var img = document.getElementById('slider-img');
+    var slideCount = <?= count($slides) ?>;
+    var slideEls = document.querySelectorAll('.slide');
     var count = document.getElementById('slider-count');
 
     function show(i) {
-        idx = (i + photos.length) % photos.length;
-        img.src = photos[idx];
-        count.textContent = (idx + 1) + ' / ' + photos.length;
+        idx = (i + slideCount) % slideCount;
+        slideEls.forEach(function (el) {
+            el.style.display = (parseInt(el.dataset.index, 10) === idx) ? '' : 'none';
+        });
+        count.textContent = (idx + 1) + ' / ' + slideCount;
     }
 
     document.getElementById('slider-prev').addEventListener('click', function () { show(idx - 1); });

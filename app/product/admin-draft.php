@@ -81,7 +81,7 @@ require '../_head.php';
                 <span class="no-photo">No Photo</span>
             <?php endif; ?>
         </td>
-        <td><?= h($row->name) ?></td>
+        <td><a href="/product/view.php?id=<?= $row->id ?>"><?= h($row->name) ?></a></td>
         <td><?= h($row->category_name) ?></td>
         <td>RM <?= number_format($row->price, 2) ?></td>
         <td><?= $row->stock_qty ?></td>
