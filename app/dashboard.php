@@ -63,6 +63,12 @@ $chart_max = max(max($months), 1);
     <a class="stat" href="/order/list.php"><b>RM <?= number_format($order_stats->this_month_revenue, 2) ?></b><span>Revenue This Month</span></a>
 </div>
 
+<h2>Product Maintenance (Admin Draft)</h2>
+<p>
+    <!-- temporarily for admin product listing (draft) -->
+    <a href="/product/admin-draft.php">View Product Maintenance (Admin Draft)</a>
+</p>
+
 <h2 id="revenue-trend">Revenue Trend</h2>
 
 <p class="status-filter">
