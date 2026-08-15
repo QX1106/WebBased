@@ -7,10 +7,36 @@
     <link rel="stylesheet" href="/css/app.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <script src="/js/app.js" defer></script>
+    <!-- TEMP: dropdown styling for the Products nav item. Move into css/app.css once finalized. -->
+    <style>
+        nav a.has-dropdown { position: relative; }
+        nav .dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: #fff;
+            border: 1px solid #ddd;
+            min-width: 180px;
+            z-index: 10;
+            list-style: none;
+            margin: 0;
+            padding: 4px 0;
+        }
+        nav a.has-dropdown:hover .dropdown { display: block; }
+        nav .dropdown li { padding: 0; }
+        nav .dropdown li a { display: block; padding: 8px 12px; white-space: nowrap; }
+        nav .dropdown li a:hover { background: #f5f5f5; }
+    </style>
 </head>
 <body>
 
 <div id="flash"><?= h(temp('info')) ?></div>
+
+<?php
+// Shared category list for the Products dropdown (used in both nav variants below)
+$_nav_categories = $pdo->query("SELECT id, name FROM category ORDER BY name")->fetchAll();
+?>
 
 <?php if ($_user && $_user->role == 'Admin'): ?>
     <?php $_path = $_SERVER['REQUEST_URI']; ?>
@@ -39,7 +65,15 @@
 <header>
     <nav>
         <a href="/">Stationary Online Store</a>
-        <a href="/product/list.php">Products</a>
+
+        <a href="/product/list.php" class="has-dropdown">
+            Products
+            <ul class="dropdown">
+                <?php foreach ($_nav_categories as $_cat): ?>
+                <li><a href="/product/list.php?category_id=<?= $_cat->id ?>"><?= h($_cat->name) ?></a></li>
+                <?php endforeach; ?>
+            </ul>
+        </a>
 
         <?php if ($_user): ?>
             <?php if ($_user->role == 'Member'): ?>
