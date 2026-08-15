@@ -148,6 +148,6 @@ if (is_post()) {
     </section>
 </form>
 
-<p><a href="detail.php?id=<?= h($id) ?>">Back to Member Detail</a></p>
+<p><a href="detail.php?id=<?= h($id) ?>" class="btn-outline">Back to Member Detail</a></p>
 
 <?php require '../_foot.php'; ?>

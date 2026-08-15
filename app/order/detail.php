@@ -2,20 +2,46 @@
 <?php auth('Admin'); ?>
 <?php
 
+auto_complete_shipped_orders();
+
 $_err = [];
 $id = get('id');
-$statuses = ['Pending', 'Processing', 'Shipped', 'Completed', 'Cancelled'];
+
+// Order status must move forward through a realistic fulfillment flow —
+// Completed/Cancelled are final, and you can't jump straight from
+// Pending to Completed or go backwards once shipped.
+$transitions = [
+    'Pending'    => ['Processing', 'Cancelled'],
+    'Processing' => ['Shipped', 'Cancelled'],
+    'Shipped'    => ['Completed'],
+    'Completed'  => [],
+    'Cancelled'  => [],
+];
+
+$stm = $pdo->prepare("SELECT o.*, m.username, m.email, m.phone, m.address
+                       FROM orders o
+                       JOIN member m ON o.member_id = m.member_id
+                       WHERE o.order_id = ?");
+$stm->execute([$id]);
+$order = $stm->fetch();
+
+if (!$order) {
+    temp('info', 'Order not found.');
+    redirect('list.php');
+}
+
+$allowed_next = $transitions[$order->order_status] ?? [];
 
 // handle status update (Additional Module: order status update by Admin)
 if (is_post()) {
     $new_status = post('order_status');
 
-    // Validate: order_status must be one of the allowed values
+    // Validate: order_status must be a legal next step from the current status
     if ($new_status == '') {
         $_err['order_status'] = 'Required';
     }
-    else if (!in_array($new_status, $statuses)) {
-        $_err['order_status'] = 'Invalid status';
+    else if (!in_array($new_status, $allowed_next)) {
+        $_err['order_status'] = "Cannot move from {$order->order_status} to $new_status";
     }
 
     if (!$_err) {
@@ -29,18 +55,6 @@ if (is_post()) {
         temp('info', 'Order status updated.');
         redirect("detail.php?id=$id");
     }
-}
-
-$stm = $pdo->prepare("SELECT o.*, m.username, m.email, m.phone, m.address
-                       FROM orders o
-                       JOIN member m ON o.member_id = m.member_id
-                       WHERE o.order_id = ?");
-$stm->execute([$id]);
-$order = $stm->fetch();
-
-if (!$order) {
-    temp('info', 'Order not found.');
-    redirect('list.php');
 }
 
 // order items joined with product for name/price display
@@ -57,8 +71,8 @@ $stm = $pdo->prepare("SELECT * FROM order_status_log WHERE order_id = ? ORDER BY
 $stm->execute([$id]);
 $log = $stm->fetchAll();
 
-// Sticky field: keep the attempted value on validation error, else current DB value
-$order_status = $_err ? ($new_status ?? '') : $order->order_status;
+// Sticky field: keep the attempted value on validation error, else blank (nothing pre-selected)
+$order_status = $_err ? ($new_status ?? '') : '';
 
 ?>
 <?php require '../_head.php'; ?>
@@ -95,12 +109,16 @@ $order_status = $_err ? ($new_status ?? '') : $order->order_status;
 </ul>
 
 <h2>Update Status</h2>
-<form method="post">
-    <?= html_select('order_status', array_combine($statuses, $statuses), null) ?>
-    <?= err('order_status') ?>
-    <button type="submit">Update</button>
-</form>
+<?php if ($allowed_next): ?>
+    <form method="post">
+        <?= html_select('order_status', array_combine($allowed_next, $allowed_next), 'Choose next status') ?>
+        <?= err('order_status') ?>
+        <button type="submit">Update</button>
+    </form>
+<?php else: ?>
+    <p>This order is <?= h($order->order_status) ?> and cannot be changed further.</p>
+<?php endif; ?>
 
-<p><a href="list.php">Back to Order Listing</a></p>
+<p><a href="list.php" class="btn-outline">Back to Order Listing</a></p>
 
 <?php require '../_foot.php'; ?>

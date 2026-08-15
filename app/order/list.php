@@ -2,6 +2,8 @@
 <?php auth('Admin'); ?>
 <?php
 
+auto_complete_shipped_orders();
+
 $status = get('status', '');
 $search = get('search', '');
 $date_from = get('date_from', '');
@@ -70,9 +72,12 @@ $filter_qs = "&status=$status&search=$search&date_from=$date_from&date_to=$date_
     <label>To <input type="date" name="date_to" value="<?= h($date_to) ?>"></label>
     <input type="hidden" name="status" value="<?= h($status) ?>">
     <button type="submit">Search</button>
-    <a href="list.php">Reset</a>
-    <a href="export.php?<?= h(ltrim($filter_qs, '&')) ?>">Export CSV</a>
+    <a href="list.php" class="btn-outline">Reset</a>
 </form>
+
+<div class="toolbar">
+    <a href="export.php?<?= h(ltrim($filter_qs, '&')) ?>" class="btn-accent">Export CSV</a>
+</div>
 
 <p class="status-filter">
     <a href="?status=&search=<?= urlencode($search) ?>&date_from=<?= urlencode($date_from) ?>&date_to=<?= urlencode($date_to) ?>" class="<?= $status === '' ? 'active' : '' ?>">All</a>

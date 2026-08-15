@@ -2,11 +2,14 @@
 <?php auth('Admin'); ?>
 <?php
 
+auto_complete_shipped_orders();
+
 $member_stats = $pdo->query("SELECT
         COUNT(*) AS total,
         SUM(status = 'Active') AS active,
         SUM(status = 'Blocked') AS blocked,
-        SUM(MONTH(created_at) = MONTH(CURDATE()) AND YEAR(created_at) = YEAR(CURDATE())) AS new_this_month
+        SUM(MONTH(created_at) = MONTH(CURDATE()) AND YEAR(created_at) = YEAR(CURDATE())) AS new_this_month,
+        SUM(last_active IS NOT NULL AND last_active >= NOW() - INTERVAL 10 MINUTE) AS online_now
     FROM member")->fetch();
 
 $order_stats = $pdo->query("SELECT
@@ -45,21 +48,20 @@ $chart_max = max(max($months), 1);
 
 <h2>Members</h2>
 <div class="stats">
-    <div class="stat"><b><?= $member_stats->total ?></b><span>Total Members</span></div>
-    <div class="stat"><b><?= $member_stats->active ?></b><span>Active</span></div>
-    <div class="stat"><b><?= $member_stats->blocked ?></b><span>Blocked</span></div>
-    <div class="stat"><b><?= $member_stats->new_this_month ?></b><span>New This Month</span></div>
+    <a class="stat" href="/member/list.php"><b><?= $member_stats->total ?></b><span>Total Members</span></a>
+    <a class="stat" href="/member/list.php"><b><?= $member_stats->active ?></b><span>Active</span></a>
+    <a class="stat" href="/member/list.php"><b><?= $member_stats->blocked ?></b><span>Blocked</span></a>
+    <a class="stat" href="/member/list.php"><b><?= $member_stats->new_this_month ?></b><span>New This Month</span></a>
+    <a class="stat" href="/member/list.php"><b><?= $member_stats->online_now ?></b><span>Online Now</span></a>
 </div>
-<p><a href="/member/list.php">View Member Maintenance</a></p>
 
 <h2>Orders</h2>
 <div class="stats">
-    <div class="stat"><b><?= $order_stats->total ?></b><span>Total Orders</span></div>
-    <div class="stat"><b><?= $order_stats->pending ?></b><span>Pending</span></div>
-    <div class="stat"><b><?= $order_stats->this_month_count ?></b><span>Orders This Month</span></div>
-    <div class="stat"><b>RM <?= number_format($order_stats->this_month_revenue, 2) ?></b><span>Revenue This Month</span></div>
+    <a class="stat" href="/order/list.php"><b><?= $order_stats->total ?></b><span>Total Orders</span></a>
+    <a class="stat" href="/order/list.php?status=Pending"><b><?= $order_stats->pending ?></b><span>Pending</span></a>
+    <a class="stat" href="/order/list.php"><b><?= $order_stats->this_month_count ?></b><span>Orders This Month</span></a>
+    <a class="stat" href="/order/list.php"><b>RM <?= number_format($order_stats->this_month_revenue, 2) ?></b><span>Revenue This Month</span></a>
 </div>
-<p><a href="/order/list.php">View Order Maintenance</a></p>
 
 <h2 id="revenue-trend">Revenue Trend</h2>
 

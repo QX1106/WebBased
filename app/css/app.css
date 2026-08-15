@@ -7,6 +7,7 @@
     --muted: #8a8175;
     --border: #e4ddd0;
     --accent: #c98a5e;     /* warm terracotta — our own accent, used sparingly */
+    --accent-soft: #f6dfd1; /* soft peach highlight, sampled from papier.com */
     --danger: #b3462c;
 }
 
@@ -31,7 +32,8 @@ h1, h2, h3 {
 h1 { font-size: 34px; }
 h2 { font-size: 24px; margin-top: 40px; }
 
-a { color: var(--ink); }
+a { color: var(--ink); text-decoration: none; }
+a:hover { text-decoration: underline; }
 
 /* ---------------------------------------------------------------------- */
 /* Header / Nav                                                            */
@@ -52,7 +54,7 @@ header nav a {
     letter-spacing: 0.03em;
 }
 
-header nav a:hover { color: var(--accent); }
+header nav a:hover { color: var(--accent); text-decoration: none; }
 header nav span { color: var(--muted); margin-left: auto; font-size: 14px; }
 
 /* ---------------------------------------------------------------------- */
@@ -160,6 +162,47 @@ button:hover { background: #000; border-color: #000; }
 button[type=reset] { background: transparent; color: var(--ink); border-color: var(--border); margin-left: 8px; }
 button[type=reset]:hover { border-color: var(--ink); }
 
+button.btn-danger { background: var(--danger); border-color: var(--danger); }
+button.btn-danger:hover { background: #8f371f; border-color: #8f371f; }
+
+/* Search bar: textbox + Search + Reset all on one row */
+form.search-bar {
+    max-width: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+form.search-bar input[type=search] { width: 280px; }
+form.search-bar button, form.search-bar a { margin-top: 0; }
+
+/* Secondary actions (Export CSV, View Login Log...) as outlined buttons,
+   set apart from the primary black Search button */
+.toolbar { display: flex; gap: 10px; margin-top: 16px; }
+
+.btn-outline {
+    display: inline-block;
+    padding: 10px 20px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--ink);
+    text-decoration: none;
+    font-size: 14px;
+    transition: border-color .15s;
+}
+.btn-outline:hover { border-color: var(--ink); text-decoration: none; }
+
+.btn-accent {
+    display: inline-block;
+    padding: 10px 20px;
+    border: 1px solid var(--accent);
+    background: var(--accent-soft);
+    color: var(--ink);
+    text-decoration: none;
+    font-size: 14px;
+    transition: background .15s;
+}
+.btn-accent:hover { background: #f0d0bd; text-decoration: none; }
+
 /* Photo upload */
 label.upload { display: inline-block; cursor: pointer; }
 label.upload img { display: block; width: 120px; height: 120px; object-fit: cover; border: 1px solid var(--border); }
@@ -170,6 +213,7 @@ form label:has(input[type=checkbox]) { display: block; text-transform: none; fon
 
 /* Status filter chips (e.g. order status filter) */
 .status-filter a { color: var(--muted); text-decoration: none; padding: 4px 10px; font-size: 14px; }
+.status-filter a:hover { text-decoration: none; color: var(--ink); }
 .status-filter a.active { background: var(--ink); color: #fff; }
 
 /* ---------------------------------------------------------------------- */
@@ -180,8 +224,17 @@ table.table { width: 100%; border-collapse: collapse; margin-top: 16px; backgrou
 table.table th, table.table td { border-bottom: 1px solid var(--border); padding: 12px 10px; text-align: left; }
 table.table th { font-family: 'Work Sans', sans-serif; text-transform: uppercase; font-size: 12px; letter-spacing: 0.04em; color: var(--muted); font-weight: 500; }
 table.table th a { display: block; color: inherit; text-decoration: none; }
+table.table th a:hover { text-decoration: none; }
 table.table th a.asc::after { content: ' \25B4'; }
 table.table th a.desc::after { content: ' \25BE'; }
+
+/* Row action links (Detail / Edit) — colored so they read as clickable
+   even without an underline, distinct from the plain black cell text */
+table.table td a, table.detail td a { color: var(--accent); font-weight: 500; }
+table.table td a:hover, table.detail td a:hover { color: #a86c45; }
+
+.online-dot { color: #3a7d44; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.offline-dot { color: var(--muted); font-size: 12px; font-weight: 500; white-space: nowrap; }
 
 /* Detail table (member/order detail pages) */
 table.detail { border-collapse: collapse; background: var(--panel); font-size: 14px; }
@@ -196,6 +249,41 @@ table.detail th { color: var(--muted); font-weight: 500; width: 160px; }
     min-height: 100vh;
 }
 
+/* Icon-only toggle, fixed at one spot on the page — sits just above/left
+   of the main heading, no reserved strip, no layout shift. It's fine for
+   it to sit close to or over other content. */
+.admin-topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1002;
+    pointer-events: none;
+}
+
+.sidebar-toggle {
+    pointer-events: auto;
+    position: fixed;
+    top: 14px;
+    left: 236px;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: var(--ink);
+    border: none;
+    font-size: 17px;
+    cursor: pointer;
+    transition: left .2s ease;
+}
+.sidebar-toggle:hover { background: var(--border); }
+
+/* Sidebar hidden: content shifts left by the sidebar's width (220px), so the
+   icon shifts the same amount to stay in the same spot next to the heading. */
+body.sidebar-hidden .sidebar-toggle { left: 16px; }
+
 .sidebar {
     width: 220px;
     background: var(--panel);
@@ -208,7 +296,11 @@ table.detail th { color: var(--muted); font-weight: 500; width: 160px; }
     left: 0;
     bottom: 0;
     overflow-y: auto;
+    transition: left .2s ease;
 }
+
+body.sidebar-hidden .sidebar { left: -220px; }
+body.sidebar-hidden .admin-layout main { margin-left: 0; }
 
 .sidebar .brand {
     font-family: 'Playfair Display', serif;
@@ -233,7 +325,7 @@ table.detail th { color: var(--muted); font-weight: 500; width: 160px; }
     border-left: 3px solid transparent;
 }
 
-.sidebar nav a:hover { background: var(--bg); }
+.sidebar nav a:hover { background: var(--bg); text-decoration: none; }
 .sidebar nav a.active { background: var(--bg); border-left-color: var(--ink); font-weight: 500; }
 
 .avatar {
@@ -273,6 +365,11 @@ header nav .user-chip { display: inline-flex; }
    guest/member header, and let wide tables scroll horizontally instead
    of forcing the whole page to overflow. */
 @media (max-width: 768px) {
+    /* The sidebar already collapses into a top bar on mobile — the
+       desktop-only hamburger toggle strip doesn't apply here */
+    .sidebar-toggle { display: none; }
+    body.sidebar-hidden .sidebar { left: 0; }
+
     .sidebar {
         position: static;
         width: 100%;
@@ -339,7 +436,11 @@ header nav .user-chip { display: inline-flex; }
     padding: 16px 20px;
     display: flex;
     flex-direction: column;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color .15s, background .15s;
 }
+.stat:hover { border-color: var(--ink); background: var(--bg); text-decoration: none; }
 .stat b { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 600; }
 .stat span { font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-top: 4px; }
 
@@ -377,4 +478,5 @@ svg.chart .chart-value { font-family: 'Work Sans', sans-serif; font-size: 11px; 
 /* Pager */
 .pager { margin-top: 16px; }
 .pager a { display: inline-block; min-width: 16px; text-align: center; padding: 6px 10px; margin-right: 4px; border: 1px solid var(--border); text-decoration: none; color: var(--ink); font-size: 13px; }
+.pager a:hover { text-decoration: none; border-color: var(--ink); }
 .pager a.active { background: var(--ink); color: #fff; border-color: var(--ink); }

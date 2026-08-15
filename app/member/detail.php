@@ -53,11 +53,11 @@ $orders = $stm->fetchAll();
     <tr><th>Registered</th><td><?= h($m->created_at) ?></td></tr>
 </table>
 
-<p><a href="edit.php?id=<?= $m->member_id ?>">Edit Member</a></p>
+<p><a href="edit.php?id=<?= $m->member_id ?>" class="btn-outline">Edit Member</a></p>
 
 <form method="post">
     <input type="hidden" name="action" value="toggle_status">
-    <button type="submit" data-confirm="<?= $m->status == 'Blocked' ? 'Unblock this member?' : 'Block this member?' ?>">
+    <button type="submit" class="<?= $m->status == 'Blocked' ? '' : 'btn-danger' ?>" data-confirm="<?= $m->status == 'Blocked' ? 'Unblock this member?' : 'Block this member?' ?>">
         <?= $m->status == 'Blocked' ? 'Unblock Member' : 'Block Member' ?>
     </button>
 </form>
@@ -80,6 +80,6 @@ $orders = $stm->fetchAll();
     <p>This member has not placed any order yet.</p>
 <?php endif; ?>
 
-<p><a href="list.php">Back to Member Listing</a></p>
+<p><a href="list.php" class="btn-outline">Back to Member Listing</a></p>
 
 <?php require '../_foot.php'; ?>

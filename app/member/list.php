@@ -14,6 +14,7 @@ $fields = [
     'Phone' => 'phone',
     'Status' => 'status',
     'Registered' => 'created_at',
+    'Online' => 'last_active',
 ];
 if (!in_array($sort, $fields)) $sort = 'member_id';
 if (!in_array($dir, ['asc', 'desc'])) $dir = 'asc';
@@ -29,12 +30,16 @@ $pager = new SimplePager($pdo, $query, $params, 10, $page);
 
 <h1>Member Maintenance</h1>
 
-<form method="get">
+<form method="get" class="search-bar">
     <?= html_search('search', "placeholder='Search username or email'") ?>
     <button type="submit">Search</button>
-    <a href="list.php">Reset</a>
-    <a href="export.php?search=<?= urlencode($search) ?>">Export CSV</a>
+    <a href="list.php" class="btn-outline">Reset</a>
 </form>
+
+<div class="toolbar">
+    <a href="export.php?search=<?= urlencode($search) ?>" class="btn-accent">Export CSV</a>
+    <a href="login_log.php" class="btn-accent">View Login Log</a>
+</div>
 
 <p><?= $pager->item_count ?> member(s) found. Page <?= $pager->page ?> of <?= $pager->page_count ?>.</p>
 
@@ -45,6 +50,7 @@ $pager = new SimplePager($pdo, $query, $params, 10, $page);
         <th></th>
     </tr>
     <?php foreach ($pager->result as $m): ?>
+        <?php $online = $m->last_active && strtotime($m->last_active) >= strtotime('-10 minutes'); ?>
         <tr>
             <td><?= h($m->member_id) ?></td>
             <td><?= h($m->username) ?></td>
@@ -52,6 +58,7 @@ $pager = new SimplePager($pdo, $query, $params, 10, $page);
             <td><?= h($m->phone) ?></td>
             <td><?= h($m->status) ?></td>
             <td><?= h($m->created_at) ?></td>
+            <td class="<?= $online ? 'online-dot' : 'offline-dot' ?>"><?= $online ? '● Online' : '● Offline' ?></td>
             <td>
                 <?php if ($m->photo): ?>
                     <img src="/uploads/member/<?= h($m->photo) ?>" width="40" height="40">

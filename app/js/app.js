@@ -1,5 +1,23 @@
 $(function () {
 
+    // Any element with [data-confirm] shows a confirm dialog before its
+    // default action (form submit, link navigation, etc.) is allowed to proceed
+    $('[data-confirm]').on('click', function (e) {
+        const text = $(this).data('confirm') || 'Are you sure?';
+        if (!confirm(text)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+        }
+    });
+
+    // Sidebar hamburger toggle (Admin layout only) — lives in its own
+    // fixed top strip, outside both the sidebar and the main content, so
+    // it never overlaps either one. Always defaults to shown; each page
+    // load starts fresh, no state is remembered.
+    $('#sidebar-toggle').on('click', function () {
+        $('body').toggleClass('sidebar-hidden');
+    });
+
     // Any element with [data-get] navigates to the given URL (or reload) on click
     $('[data-get]').on('click', function () {
         const url = $(this).data('get');

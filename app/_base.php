@@ -12,6 +12,31 @@ $pdo = new PDO('mysql:dbname=stationary_db', 'root', '', [
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_OBJ,
 ]);
 
+// Orders auto-complete this many days after being marked Shipped, if the
+// customer never confirms receipt themselves (same idea as Shopee/Lazada's
+// auto-confirm window). No real cron job here — the check just runs
+// whenever an Admin page that cares about orders loads.
+const AUTO_COMPLETE_DAYS = 7;
+
+function auto_complete_shipped_orders() {
+    global $pdo;
+
+    $stm = $pdo->prepare("SELECT o.order_id
+                           FROM orders o
+                           JOIN order_status_log l ON l.order_id = o.order_id AND l.status = 'Shipped'
+                           WHERE o.order_status = 'Shipped'
+                             AND l.changed_at <= NOW() - INTERVAL ? DAY");
+    $stm->execute([AUTO_COMPLETE_DAYS]);
+    $order_ids = $stm->fetchAll(PDO::FETCH_COLUMN);
+
+    foreach ($order_ids as $order_id) {
+        $pdo->prepare("UPDATE orders SET order_status = 'Completed' WHERE order_id = ?")
+            ->execute([$order_id]);
+        $pdo->prepare("INSERT INTO order_status_log (order_id, status) VALUES (?, 'Completed')")
+            ->execute([$order_id]);
+    }
+}
+
 // =========================================================
 // PATH / URL HELPERS
 // =========================================================
@@ -83,8 +108,21 @@ function temp($key, $value = null) {
 // unless you decide role column in `member` covers both. 
 $_user = $_SESSION['user'] ?? null;
 
+// Online-now heartbeat: every request from a logged-in user refreshes
+// their last_active timestamp (used to show who's online right now)
+if ($_user) {
+    $stm = $pdo->prepare("UPDATE member SET last_active = NOW() WHERE member_id = ?");
+    $stm->execute([$_user->member_id]);
+}
+
 function login($user, $url = '/') {
+    global $pdo;
+
     $_SESSION['user'] = $user;
+
+    $stm = $pdo->prepare("INSERT INTO login_log (member_id, login_time) VALUES (?, NOW())");
+    $stm->execute([$user->member_id]);
+
     redirect($url);
 }
 
