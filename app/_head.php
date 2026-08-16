@@ -7,13 +7,43 @@
     <link rel="stylesheet" href="/css/app.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <script src="/js/app.js" defer></script>
+    <!-- TEMP: dropdown styling for the Products nav item. Move into css/app.css once finalized. -->
+    <style>
+        nav a.has-dropdown { position: relative; }
+        nav .dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: #fff;
+            border: 1px solid #ddd;
+            min-width: 180px;
+            z-index: 10;
+            list-style: none;
+            margin: 0;
+            padding: 4px 0;
+        }
+        nav a.has-dropdown:hover .dropdown { display: block; }
+        nav .dropdown li { padding: 0; }
+        nav .dropdown li a { display: block; padding: 8px 12px; white-space: nowrap; }
+        nav .dropdown li a:hover { background: #f5f5f5; }
+    </style>
 </head>
 <body>
+<script>if (localStorage.getItem('sidebar-hidden') === '1') document.body.classList.add('sidebar-hidden');</script>
 
 <div id="flash"><?= h(temp('info')) ?></div>
 
+<?php
+// Shared category list for the Products dropdown (used in both nav variants below)
+$_nav_categories = $pdo->query("SELECT id, name FROM category ORDER BY name")->fetchAll();
+?>
+
 <?php if ($_user && $_user->role == 'Admin'): ?>
     <?php $_path = $_SERVER['REQUEST_URI']; ?>
+    <div class="admin-topbar">
+        <button type="button" id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle sidebar">&#9776;</button>
+    </div>
     <div class="admin-layout">
         <aside class="sidebar">
             <a href="/" class="brand">Stationary Online Store</a>
@@ -22,6 +52,8 @@
                 <a href="/member/list.php" class="<?= str_starts_with($_path, '/member') ? 'active' : '' ?>">Members</a>
                 <a href="/order/list.php" class="<?= str_starts_with($_path, '/order') ? 'active' : '' ?>">Orders</a>
                 <a href="/product/list.php" class="<?= str_starts_with($_path, '/product') ? 'active' : '' ?>">Products</a>
+                <!-- TEMP: remove once /product/list.php is built -->
+                <a href="/product/admin-draft.php">Product (Admin Draft)</a>
             </nav>
             <div class="sidebar-foot">
                 <div class="user-chip">
@@ -37,7 +69,15 @@
 <header>
     <nav>
         <a href="/">Stationary Online Store</a>
-        <a href="/product/list.php">Products</a>
+
+        <a href="/product/list.php" class="has-dropdown">
+            Products
+            <ul class="dropdown">
+                <?php foreach ($_nav_categories as $_cat): ?>
+                <li><a href="/product/list.php?category_id=<?= $_cat->id ?>"><?= h($_cat->name) ?></a></li>
+                <?php endforeach; ?>
+            </ul>
+        </a>
 
         <?php if ($_user): ?>
             <?php if ($_user->role == 'Member'): ?>
@@ -50,6 +90,9 @@
             <a href="/user/login.php">Login</a>
             <a href="/member/register.php">Register</a>
         <?php endif; ?>
+
+        <!-- TEMP: remove once /product/list.php is built -->
+        <a href="/product/admin-draft.php">Product (Admin Draft)</a>
     </nav>
 </header>
 
