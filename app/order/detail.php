@@ -77,9 +77,9 @@ if (is_post()) {
     }
 }
 
-$stm = $pdo->prepare("SELECT oi.*, p.product_name
+$stm = $pdo->prepare("SELECT oi.*, p.name AS product_name
                        FROM order_item oi
-                       JOIN product p ON oi.product_id = p.product_id
+                       JOIN product p ON oi.product_id = p.id
                        WHERE oi.order_id = ?");
 $stm->execute([$id]);
 $items = $stm->fetchAll();
