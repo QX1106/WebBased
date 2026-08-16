@@ -33,6 +33,19 @@ $stm = $pdo->prepare("SELECT * FROM orders WHERE member_id = ? ORDER BY order_da
 $stm->execute([$id]);
 $orders = $stm->fetchAll();
 
+// Customer value summary (Additional Module): ties Member + Order together —
+// only Completed orders count towards spend (same rule as Dashboard revenue —
+// Pending/Processing/Shipped haven't actually been fulfilled/paid for yet),
+// but every order (including Cancelled) still counts as one placed
+$order_count = count($orders);
+$total_spent = 0;
+foreach ($orders as $o) {
+    if ($o->order_status == 'Completed') {
+        $total_spent += $o->total_amount;
+    }
+}
+$last_order_date = $orders ? $orders[0]->order_date : null;
+
 ?>
 <?php require '../_head.php'; ?>
 
@@ -63,6 +76,11 @@ $orders = $stm->fetchAll();
 </form>
 
 <h2>Order History</h2>
+<div class="stats">
+    <a class="stat" href="../order/list.php?search=<?= urlencode($m->username) ?>"><b><?= $order_count ?></b><span>Total Orders</span></a>
+    <a class="stat" href="../order/list.php?search=<?= urlencode($m->username) ?>"><b>RM <?= number_format($total_spent, 2) ?></b><span>Total Spent</span></a>
+    <a class="stat" href="../order/list.php?search=<?= urlencode($m->username) ?>"><b><?= $last_order_date ? h($last_order_date) : '—' ?></b><span>Last Order</span></a>
+</div>
 <?php if ($orders): ?>
     <table class="table">
         <tr><th>Order ID</th><th>Order Date</th><th>Total (RM)</th><th>Status</th><th></th></tr>

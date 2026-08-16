@@ -2,8 +2,7 @@
 <?php auth('Admin'); ?>
 <?php
 
-// CSV Export (Additional Module) — reuses the same search filter as list.php,
-// but exports ALL matching rows, not just the current page.
+// CSV 
 $search = get('search', '');
 
 $stm = $pdo->prepare("SELECT member_id, username, email, phone, address, role, status, created_at

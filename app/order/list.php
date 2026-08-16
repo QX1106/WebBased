@@ -21,7 +21,7 @@ $fields = [
 if (!in_array($sort, $fields)) $sort = 'order_id';
 if (!in_array($dir, ['asc', 'desc'])) $dir = 'desc';
 
-// Advanced search (Additional Module): filter by member name/email/order id + date range
+// search
 $conditions = [];
 $params = [];
 
@@ -46,7 +46,7 @@ if ($date_to !== '' && is_date($date_to)) {
 
 $where_sql = $conditions ? ('WHERE ' . implode(' AND ', $conditions)) : '';
 
-// join orders with member so admin can see who placed each order
+// order + member
 $query = "SELECT o.*, m.username, m.email
           FROM orders o
           JOIN member m ON o.member_id = m.member_id
@@ -56,7 +56,6 @@ $query = "SELECT o.*, m.username, m.email
 $page = get('page', 1);
 $pager = new SimplePager($pdo, $query, $params, 10, $page);
 
-// distinct status list for the filter links (adjust to match your actual enum values)
 $statuses = ['Pending', 'Processing', 'Shipped', 'Completed', 'Cancelled'];
 
 $filter_qs = "&status=$status&search=$search&date_from=$date_from&date_to=$date_to";

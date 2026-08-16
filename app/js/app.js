@@ -12,11 +12,25 @@ $(function () {
 
     // Sidebar hamburger toggle (Admin layout only) — lives in its own
     // fixed top strip, outside both the sidebar and the main content, so
-    // it never overlaps either one. Always defaults to shown; each page
-    // load starts fresh, no state is remembered.
+    // it never overlaps either one. State is remembered across page loads
+    // via localStorage (applied early, in _head.php, to avoid a flash of
+    // the wrong state before this script runs).
     $('#sidebar-toggle').on('click', function () {
-        $('body').toggleClass('sidebar-hidden');
+        const hidden = $('body').toggleClass('sidebar-hidden').hasClass('sidebar-hidden');
+        localStorage.setItem('sidebar-hidden', hidden ? '1' : '0');
     });
+
+    // Order status update (order/detail.php only, no-op elsewhere): picking
+    // "Cancelled" reveals the reason dropdown, and picking "Other" within
+    // that reveals the free-text field.
+    function syncCancelReasonFields() {
+        const $orderStatus = $('#order_status');
+        if (!$orderStatus.length) return;
+        $('#cancel-reason-wrap').toggle($orderStatus.val() === 'Cancelled');
+        $('#cancel-other-wrap').toggle($('#cancel_reason').val() === 'Other');
+    }
+    $('#order_status, #cancel_reason').on('change', syncCancelReasonFields);
+    syncCancelReasonFields();
 
     // Any element with [data-get] navigates to the given URL (or reload) on click
     $('[data-get]').on('click', function () {

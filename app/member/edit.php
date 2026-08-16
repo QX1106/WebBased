@@ -53,7 +53,7 @@ if (is_post()) {
         $_err['email'] = 'Email already registered';
     }
 
-    // Validate: phone (Malaysian format — mobile/landline, optional +60/60/0 prefix)
+    // Validate: phone
     if ($phone == '') {
         $_err['phone'] = 'Required';
     } elseif (strlen($phone) > 20) {
@@ -62,12 +62,12 @@ if (is_post()) {
         $_err['phone'] = 'Must be a valid Malaysian phone number, e.g. 012-3456789 or +60123456789';
     }
 
-    // Validate: address (optional, but bounded by DB column width)
+    // Validate: address 
     if ($address != '' && strlen($address) > 255) {
         $_err['address'] = 'Maximum 255 characters';
     }
 
-    // Validate: photo (optional — only checked if a new file is selected)
+    // Validate: photo 
     if ($f) {
         if (!str_starts_with($f->type, 'image/')) {
             $_err['photo'] = 'Must be an image file';
@@ -81,7 +81,6 @@ if (is_post()) {
     if (!$_err) {
         $new_photo = $m->photo;
 
-        // Replace photo only if a new file was uploaded; otherwise honor "remove photo"
         if ($f) {
             if ($m->photo && file_exists(root("uploads/member/{$m->photo}"))) {
                 unlink(root("uploads/member/{$m->photo}"));
@@ -97,8 +96,6 @@ if (is_post()) {
         $stm = $pdo->prepare("UPDATE member SET username = ?, email = ?, phone = ?, address = ?, photo = ? WHERE member_id = ?");
         $stm->execute([$username, $email, $phone, $address, $new_photo, $id]);
 
-        // If the admin edited their own account, refresh the session copy too
-        // (nav/sidebar reads $_user from the session, not a fresh DB query)
         if ($_user && $id == $_user->member_id) {
             $stm = $pdo->prepare("SELECT * FROM member WHERE member_id = ?");
             $stm->execute([$id]);

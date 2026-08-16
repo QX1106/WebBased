@@ -12,10 +12,7 @@ $pdo = new PDO('mysql:dbname=stationary_db', 'root', '', [
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_OBJ,
 ]);
 
-// Orders auto-complete this many days after being marked Shipped, if the
-// customer never confirms receipt themselves (same idea as Shopee/Lazada's
-// auto-confirm window). No real cron job here — the check just runs
-// whenever an Admin page that cares about orders loads.
+// shipped if more than  7 days, auto-complete
 const AUTO_COMPLETE_DAYS = 7;
 
 function auto_complete_shipped_orders() {
@@ -148,8 +145,7 @@ function h($value) {
     return htmlspecialchars($value ?? '', ENT_QUOTES);
 }
 
-// Neutralize CSV/formula injection: a field starting with =, +, -, @ can be
-// executed as a formula by Excel/Sheets when the exported CSV is opened.
+// CSV
 function csv_safe($value) {
     $value = (string)($value ?? '');
     if (preg_match('/^[=+\-@]/', $value)) {
@@ -158,7 +154,7 @@ function csv_safe($value) {
     return $value;
 }
 
-// Small avatar for the logged-in user (photo if uploaded, else initial letter)
+// user avatar/initial letter
 function user_avatar($u, $size = 32) {
     if ($u->photo) {
         return "<img src='/uploads/member/" . h($u->photo) . "' width='$size' height='$size' class='avatar'>";

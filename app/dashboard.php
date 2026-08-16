@@ -17,10 +17,10 @@ $order_stats = $pdo->query("SELECT
         SUM(order_status = 'Pending') AS pending,
         SUM(MONTH(order_date) = MONTH(CURDATE()) AND YEAR(order_date) = YEAR(CURDATE())) AS this_month_count,
         SUM(CASE WHEN MONTH(order_date) = MONTH(CURDATE()) AND YEAR(order_date) = YEAR(CURDATE())
-                 AND order_status != 'Cancelled' THEN total_amount ELSE 0 END) AS this_month_revenue
+                 AND order_status = 'Completed' THEN total_amount ELSE 0 END) AS this_month_revenue
     FROM orders")->fetch();
 
-// Revenue trend (Additional Module): selectable range, cancelled orders excluded
+// Revenue trend 
 $range = (int) get('range', 6);
 if (!in_array($range, [3, 6, 12], true)) $range = 6;
 
@@ -31,7 +31,7 @@ for ($i = $range - 1; $i >= 0; $i--) {
 
 $stm = $pdo->query("SELECT DATE_FORMAT(order_date, '%Y-%m') AS ym, SUM(total_amount) AS revenue
                      FROM orders
-                     WHERE order_status != 'Cancelled'
+                     WHERE order_status = 'Completed'
                      GROUP BY ym");
 foreach ($stm as $row) {
     if (array_key_exists($row->ym, $months)) {

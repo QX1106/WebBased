@@ -2,8 +2,7 @@
 <?php auth('Admin'); ?>
 <?php
 
-// CSV Export (Additional Module) — reuses the same filters as list.php,
-// but exports ALL matching rows, not just the current page.
+// CSV 
 $status = get('status', '');
 $search = get('search', '');
 $date_from = get('date_from', '');

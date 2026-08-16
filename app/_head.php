@@ -9,6 +9,7 @@
     <script src="/js/app.js" defer></script>
 </head>
 <body>
+<script>if (localStorage.getItem('sidebar-hidden') === '1') document.body.classList.add('sidebar-hidden');</script>
 
 <div id="flash"><?= h(temp('info')) ?></div>
 

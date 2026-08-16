@@ -533,6 +533,7 @@ ul.timeline li.cancelled b { color: var(--danger); }
 
 ul.timeline li b { display: inline-block; min-width: 110px; }
 ul.timeline li span { color: var(--muted); }
+ul.timeline li .timeline-note { margin-top: 4px; font-size: 13px; color: var(--danger); }
 
 /* Revenue trend chart (hand-rolled SVG, no charting library) */
 svg.chart { display: block; max-width: 100%; height: auto; margin: 16px 0 24px; }

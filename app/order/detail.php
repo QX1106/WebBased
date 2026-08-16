@@ -7,9 +7,7 @@ auto_complete_shipped_orders();
 $_err = [];
 $id = get('id');
 
-// Order status must move forward through a realistic fulfillment flow —
-// Completed/Cancelled are final, and you can't jump straight from
-// Pending to Completed or go backwards once shipped.
+// Order status 
 $transitions = [
     'Pending'    => ['Processing', 'Cancelled'],
     'Processing' => ['Shipped', 'Cancelled'],
@@ -32,11 +30,20 @@ if (!$order) {
 
 $allowed_next = $transitions[$order->order_status] ?? [];
 
-// handle status update (Additional Module: order status update by Admin)
+$cancel_reasons = [
+    'Out of Stock' => 'Out of Stock',
+    'Customer Requested' => 'Customer Requested',
+    'Payment Issue' => 'Payment Issue',
+    'Suspected Fraud' => 'Suspected Fraud',
+    'Other' => 'Other',
+];
+
+// status update
 if (is_post()) {
     $new_status = post('order_status');
+    $cancel_reason = post('cancel_reason');
+    $cancel_other = post('cancel_other');
 
-    // Validate: order_status must be a legal next step from the current status
     if ($new_status == '') {
         $_err['order_status'] = 'Required';
     }
@@ -44,20 +51,32 @@ if (is_post()) {
         $_err['order_status'] = "Cannot move from {$order->order_status} to $new_status";
     }
 
+    // reason cancel
+    $note = null;
+    if (!$_err && $new_status == 'Cancelled') {
+        if ($cancel_reason == '' || !isset($cancel_reasons[$cancel_reason])) {
+            $_err['cancel_reason'] = 'Required';
+        }
+        elseif ($cancel_reason == 'Other' && trim($cancel_other) == '') {
+            $_err['cancel_other'] = 'Please specify a reason';
+        }
+        if (!$_err) {
+            $note = $cancel_reason == 'Other' ? 'Other — ' . trim($cancel_other) : $cancel_reason;
+        }
+    }
+
     if (!$_err) {
         $stm = $pdo->prepare("UPDATE orders SET order_status = ? WHERE order_id = ?");
         $stm->execute([$new_status, $id]);
 
-        // Log the change for the status timeline (Additional Module)
-        $stm = $pdo->prepare("INSERT INTO order_status_log (order_id, status) VALUES (?, ?)");
-        $stm->execute([$id, $new_status]);
+        $stm = $pdo->prepare("INSERT INTO order_status_log (order_id, status, note) VALUES (?, ?, ?)");
+        $stm->execute([$id, $new_status, $note]);
 
         temp('info', 'Order status updated.');
         redirect("detail.php?id=$id");
     }
 }
 
-// order items joined with product for name/price display
 $stm = $pdo->prepare("SELECT oi.*, p.product_name
                        FROM order_item oi
                        JOIN product p ON oi.product_id = p.product_id
@@ -65,22 +84,20 @@ $stm = $pdo->prepare("SELECT oi.*, p.product_name
 $stm->execute([$id]);
 $items = $stm->fetchAll();
 
-// Status timeline (Additional Module): "Order Placed" is always synthesized from
-// orders.order_date so the timeline never depends on how the order was created.
+// status timeline
 $stm = $pdo->prepare("SELECT * FROM order_status_log WHERE order_id = ? ORDER BY changed_at ASC");
 $stm->execute([$id]);
 $log = $stm->fetchAll();
 
-// Build the full timeline (Shopee/Pinduoduo style): show every step in the
-// normal flow, including ones not reached yet, instead of only what already
-// happened — so progress is visible at a glance.
 $sequence = ['Pending' => 'Order Placed', 'Processing' => 'Processing', 'Shipped' => 'Shipped', 'Completed' => 'Completed'];
 
 $reached = ['Pending' => $order->order_date];
 $cancelled_at = null;
+$cancelled_note = null;
 foreach ($log as $l) {
     if ($l->status == 'Cancelled') {
         $cancelled_at = $l->changed_at;
+        $cancelled_note = $l->note;
     } else {
         $reached[$l->status] = $l->changed_at;
     }
@@ -90,21 +107,20 @@ $timeline = [];
 foreach ($sequence as $key => $label) {
     if (isset($reached[$key])) {
         $state = ($key == $order->order_status) ? 'current' : 'done';
-        $timeline[] = ['label' => $label, 'time' => $reached[$key], 'state' => $state];
+        $timeline[] = ['label' => $label, 'time' => $reached[$key], 'state' => $state, 'note' => null];
     } elseif ($cancelled_at === null) {
-        $timeline[] = ['label' => $label, 'time' => null, 'state' => 'future'];
+        $timeline[] = ['label' => $label, 'time' => null, 'state' => 'future', 'note' => null];
     } else {
-        // order was cancelled before reaching this step — stop here,
-        // don't show steps that will now never happen
         break;
     }
 }
 if ($cancelled_at !== null) {
-    $timeline[] = ['label' => 'Cancelled', 'time' => $cancelled_at, 'state' => 'cancelled'];
+    $timeline[] = ['label' => 'Cancelled', 'time' => $cancelled_at, 'state' => 'cancelled', 'note' => $cancelled_note];
 }
 
-// Sticky field: keep the attempted value on validation error, else blank (nothing pre-selected)
 $order_status = $_err ? ($new_status ?? '') : '';
+$cancel_reason = $_err ? ($cancel_reason ?? '') : '';
+$cancel_other = $_err ? ($cancel_other ?? '') : '';
 
 ?>
 <?php require '../_head.php'; ?>
@@ -134,7 +150,6 @@ $order_status = $_err ? ($new_status ?? '') : '';
     <?php endforeach; ?>
 </table>
 
-<!-- Print-only receipt layout (hidden on screen, shown by @media print) -->
 <div class="receipt">
     <div class="receipt-store">
         <div class="receipt-store-name">Stationary Online Store</div>
@@ -179,6 +194,7 @@ $order_status = $_err ? ($new_status ?? '') : '';
         <li class="<?= h($t['state']) ?>">
             <b><?= h($t['label']) ?></b>
             <span><?= $t['time'] ? h($t['time']) : 'Not yet' ?></span>
+            <?php if ($t['note']): ?><div class="timeline-note">Reason: <?= h($t['note']) ?></div><?php endif; ?>
         </li>
     <?php endforeach; ?>
 </ul>
@@ -188,6 +204,19 @@ $order_status = $_err ? ($new_status ?? '') : '';
     <form method="post" class="no-print">
         <?= html_select('order_status', array_combine($allowed_next, $allowed_next), 'Choose next status', 'data-no-autofocus') ?>
         <?= err('order_status') ?>
+
+        <div id="cancel-reason-wrap" style="display:none">
+            <label for="cancel_reason">Cancellation Reason</label>
+            <?= html_select('cancel_reason', $cancel_reasons, 'Choose a reason', 'data-no-autofocus') ?>
+            <?= err('cancel_reason') ?>
+
+            <div id="cancel-other-wrap" style="display:none">
+                <label for="cancel_other">Please specify</label>
+                <?= html_text('cancel_other', "maxlength='255' data-no-autofocus") ?>
+                <?= err('cancel_other') ?>
+            </div>
+        </div>
+
         <button type="submit">Update</button>
     </form>
 <?php else: ?>

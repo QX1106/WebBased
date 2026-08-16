@@ -6,7 +6,6 @@ $search = get('search', '');
 $sort = get('sort', 'member_id');
 $dir = get('dir', 'asc');
 
-// Whitelist to prevent SQL injection via sort field
 $fields = [
     'ID' => 'member_id',
     'Username' => 'username',

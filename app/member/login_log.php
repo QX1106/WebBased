@@ -2,9 +2,7 @@
 <?php auth('Admin'); ?>
 <?php
 
-// Login Log (Additional Module): every successful login is recorded by the
-// shared login() function in _base.php, so this works regardless of how a
-// teammate's own login.php checks the password.
+// Login Log 
 $search = get('search', '');
 $sort = get('sort', 'login_time');
 $dir = get('dir', 'desc');

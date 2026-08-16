@@ -12,7 +12,6 @@ if (is_post()) {
     $phone = post('phone');
     $address = post('address');
 
-    // Validate: username
     if ($username == '') {
         $_err['username'] = 'Required';
     } elseif (strlen($username) > 50) {
@@ -23,7 +22,6 @@ if (is_post()) {
         $_err['username'] = 'Username already taken';
     }
 
-    // Validate: email
     if ($email == '') {
         $_err['email'] = 'Required';
     } elseif (strlen($email) > 100) {
@@ -34,21 +32,18 @@ if (is_post()) {
         $_err['email'] = 'Email already registered';
     }
 
-    // Validate: password
     if ($password == '') {
         $_err['password'] = 'Required';
     } elseif (strlen($password) < 6 || strlen($password) > 100) {
         $_err['password'] = 'Between 6-100 characters';
     }
 
-    // Validate: confirm
     if ($confirm == '') {
         $_err['confirm'] = 'Required';
     } elseif ($confirm !== $password) {
         $_err['confirm'] = 'Passwords do not match';
     }
 
-    // Validate: phone (Malaysian format — mobile/landline, optional +60/60/0 prefix)
     if ($phone == '') {
         $_err['phone'] = 'Required';
     } elseif (strlen($phone) > 20) {
@@ -57,7 +52,6 @@ if (is_post()) {
         $_err['phone'] = 'Must be a valid Malaysian phone number, e.g. 012-3456789 or +60123456789';
     }
 
-    // Validate: address (optional, but bounded by DB column width)
     if ($address != '' && strlen($address) > 255) {
         $_err['address'] = 'Maximum 255 characters';
     }
@@ -74,7 +68,6 @@ if (is_post()) {
     }
 
     if (!$_err) {
-        // Only touch the filesystem once every other field has passed validation
         $photo = $f ? save_photo($f, 'uploads/member', 200, 200) : null;
 
         $stm = $pdo->prepare("INSERT INTO member (username, email, password, phone, address, photo, role, status, created_at)
