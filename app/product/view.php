@@ -1,5 +1,5 @@
 <?php require '../_base.php'; ?>
-<?php // auth('Admin'); // TODO: re-enable once login page (teammate's part) is ready ?>
+<?php // auth('Admin'); // TODO: re-enable once JW login page is ready ?>
 <?php
 
 $id = get('id');
@@ -18,7 +18,8 @@ if (!$product) {
 
 function youtube_embed_url($url) {
     if ($url && preg_match('/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([a-zA-Z0-9_-]{11})/', $url, $m)) {
-        return 'https://www.youtube.com/embed/' . $m[1];
+        
+        return 'https://www.youtube-nocookie.com/embed/' . $m[1];
     }
     return null;
 }
@@ -35,8 +36,7 @@ foreach ($gallery_stm->fetchAll() as $gp) {
     $all_photos[] = $gp->photo;
 }
 
-// ---- Build one combined slide list: video first (if any), then photos -----
-// Shopee/Lazada-style: video is slide 0, photos follow.
+
 $slides = [];
 if ($embed_url) {
     $slides[] = ['type' => 'video', 'src' => $embed_url];
@@ -70,11 +70,6 @@ require '../_head.php';
     </div>
 
     <?php if (count($slides) > 1): ?>
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
-        <button type="button" id="slider-prev">&larr; Prev</button>
-        <span id="slider-count">1 / <?= count($slides) ?></span>
-        <button type="button" id="slider-next">Next &rarr;</button>
-    </div>
     <div style="display:flex; gap:4px; margin-top:6px; flex-wrap:wrap;">
         <?php foreach ($slides as $i => $slide): ?>
             <?php if ($slide['type'] === 'video'): ?>
@@ -87,21 +82,26 @@ require '../_head.php';
             <?php endif; ?>
         <?php endforeach; ?>
     </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
+        <button type="button" id="slider-prev">&larr; Prev</button>
+        <span id="slider-count">1 / <?= count($slides) ?></span>
+        <button type="button" id="slider-next">Next &rarr;</button>
+    </div>
     <?php endif; ?>
 </div>
 <?php else: ?>
 <span class="no-photo">No Photo</span>
 <?php endif; ?>
 
-<table class="form-table">
-    <tr><td>Name</td><td><?= h($product->name) ?></td></tr>
+<table class="form-table" style="width:400px;">
+    <tr><td style="width:130px;">Name</td><td><?= h($product->name) ?></td></tr>
     <tr><td>Category</td><td><?= h($product->category_name) ?></td></tr>
     <tr><td>Price</td><td>RM <?= number_format($product->price, 2) ?></td></tr>
     <tr><td>Stock Qty</td><td><?= $product->stock_qty ?></td></tr>
     <tr><td>Description</td><td><?= nl2br(h($product->description)) ?></td></tr>
 </table>
 
-<p>
+<p style="width : 400px;">
     <a href="/product/update.php?id=<?= $product->id ?>">Edit</a> |
     <a href="/product/delete.php?id=<?= $product->id ?>" onclick="return confirm('Delete this product?')">Delete</a> |
     <a href="/product/admin-draft.php">Back to List</a>

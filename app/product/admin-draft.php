@@ -1,5 +1,5 @@
 <?php require '../_base.php'; ?>
-<?php // auth('Admin'); // TODO: re-enable once login page (teammate's part) is ready ?>
+<?php // auth('Admin'); // TODO: re-enable once JW login page  is ready ?>
 <?php
 
 $fields = [

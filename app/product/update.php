@@ -1,6 +1,9 @@
 <?php require '../_base.php'; ?>
-<?php // auth('Admin'); // TODO: re-enable once JW login page  is ready ?>
+<?php // auth('Admin'); // TODO: re-enable once JW login page is ready ?>
 <?php
+
+// Same fix as insert.php — make DB errors visible instead of silent.
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 // ---- Check a YouTube link actually exists (not just correctly formatted) ---
 function youtube_video_exists($url) {
@@ -13,7 +16,7 @@ function youtube_video_exists($url) {
     return (bool) preg_match('/\s200\s/', $http_response_header[0]);
 }
 
-
+// ---- Read multiple uploaded files from an <input name="key[]" multiple> ----
 function get_files($key) {
     $out = [];
     if (!empty($_FILES[$key]) && is_array($_FILES[$key]['name'])) {
@@ -52,7 +55,7 @@ if (is_get()) {
     $video_url   = $product->video_url;
 
     // ---- Practical 6: keep photo filename in SESSION -----------------------
-   
+
     $_SESSION['edit_photo'] = $product->photo;
 }
 
@@ -99,7 +102,7 @@ if (is_post()) {
         $_err['stock_qty'] = 'Stock quantity must be a whole number, 0 or more';
     }
 
-    // Video URL is optional; if given, it must actually be a YouTube link
+    
     if ($video_url != '') {
         if (!preg_match('/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))[a-zA-Z0-9_-]{11}/', $video_url)) {
             $_err['video_url'] = 'Enter a valid YouTube link, e.g. https://youtu.be/dQw4w9WgXcQ';
@@ -129,7 +132,7 @@ if (is_post()) {
             if ($photo && file_exists(root("photos/$photo"))) {
                 unlink(root("photos/$photo"));
             }
-            $new_photo_raw = save_photo($f, 'photos', 400, 300);
+            $new_photo_raw = save_photo($f, 'photos', 800, 600);
 
             // Same readable-name treatment as insert.php
             $slug = strtolower(preg_replace('/[^a-z0-9]+/i', '-', trim($name)));
@@ -148,11 +151,17 @@ if (is_post()) {
 
         // Append any newly added gallery photos (existing ones are untouched)
         $order = count($gallery_photos);
+        $skipped = [];
         foreach ($gallery_files as $gf) {
-            if (strpos($gf->type, 'image/') !== 0 || $gf->size > 1 * 1024 * 1024) {
+            if (strpos($gf->type, 'image/') !== 0) {
+                $skipped[] = $gf->name . ' (not an image)';
                 continue;
             }
-            $gphoto = save_photo($gf, 'photos', 400, 300);
+            if ($gf->size > 5 * 1024 * 1024) {
+                $skipped[] = $gf->name . ' (over 5MB)';
+                continue;
+            }
+            $gphoto = save_photo($gf, 'photos', 800, 600);
             $gslug_base = strtolower(preg_replace('/[^a-z0-9]+/i', '-', trim($name)));
             $gslug_base = trim($gslug_base, '-');
             $gslug = $gslug_base . '-gallery-' . substr(uniqid(), -6) . '.jpg';
@@ -163,7 +172,11 @@ if (is_post()) {
         }
 
         unset($_SESSION['edit_photo']);
-        temp('info', "Product '$name' updated successfully.");
+        $msg = "Product '$name' updated successfully.";
+        if ($skipped) {
+            $msg .= ' Skipped: ' . implode(', ', $skipped) . '.';
+        }
+        temp('info', $msg);
         redirect('/product/admin-draft.php');
     }
 }
@@ -177,21 +190,20 @@ require '../_head.php';
 <form method="post" enctype="multipart/form-data" novalidate>
     <table class="form-table">
         <tr>
-            <td>Photo</td>
+            <td style="vertical-align:middle;">Photo</td>
             <td>
-                <label class="upload" id="upload-zone" tabindex="0">
+                <label class="upload" tabindex="0">
                     <img src="<?= $photo ? '/photos/' . h($photo) : '/images/placeholder.png' ?>"
-                         data-src="<?= $photo ? '/photos/' . h($photo) : '/images/placeholder.png' ?>"
-                         id="upload-preview">
+                         data-src="<?= $photo ? '/photos/' . h($photo) : '/images/placeholder.png' ?>">
                     <?= html_file('photo', 'image/*', 'hidden') ?>
                 </label>
-                <p class="hint">Click to browse, or drag &amp; drop an image here. Leave empty to keep the current photo.</p>
+                <p class="hint">Click the box above to browse and select a new image. Leave empty to keep the current photo.</p>
                 <?= err('photo') ?>
             </td>
         </tr>
         <tr>
-            <td>Additional Photos</td>
-            <td>
+            <td style="vertical-align:top; padding-top:16px;">Additional Photos</td>
+            <td style="padding-top:16px;">
                 <?php if ($gallery_photos): ?>
                 <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
                     <?php foreach ($gallery_photos as $gp): ?>
@@ -252,7 +264,6 @@ require '../_head.php';
 
 <script>
 // ---- Live (client-side) validation
-
 (function () {
     function setErr(id, msg) {
         var el = document.getElementById('err_' + id);
@@ -315,43 +326,7 @@ require '../_head.php';
             setErr('video_url', ok ? '' : 'Enter a valid YouTube link, e.g. https://youtu.be/dQw4w9WgXcQ');
         });
     }
-
-    // ---- Drag-and-drop photo upload -----------------------------------
-    var zone = document.getElementById('upload-zone');
-    if (zone) {
-        var fileInput = zone.querySelector('input[type=file]');
-        var preview = document.getElementById('upload-preview');
-
-        ['dragenter', 'dragover'].forEach(function (evt) {
-            zone.addEventListener(evt, function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                zone.classList.add('drag-over');
-            });
-        });
-        ['dragleave', 'drop'].forEach(function (evt) {
-            zone.addEventListener(evt, function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                zone.classList.remove('drag-over');
-            });
-        });
-        zone.addEventListener('drop', function (e) {
-            var files = e.dataTransfer.files;
-            if (files && files.length) {
-                fileInput.files = files;
-                if (preview && files[0].type.indexOf('image/') === 0) {
-                    preview.src = URL.createObjectURL(files[0]);
-                }
-                fileInput.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-        });
-    }
 })();
 </script>
-
-<style>
-    #upload-zone.drag-over { outline: 2px dashed #4a90d9; outline-offset: 2px; }
-</style>
 
 <?php require '../_foot.php'; ?>
