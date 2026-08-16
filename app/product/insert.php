@@ -2,6 +2,10 @@
 <?php // auth('Admin'); // TODO: re-enable once JW login page is ready ?>
 <?php
 
+
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+
 function youtube_video_exists($url) {
     $api = 'https://www.youtube.com/oembed?url=' . urlencode($url) . '&format=json';
     $context = stream_context_create(['http' => ['timeout' => 4, 'ignore_errors' => true]]);
@@ -68,7 +72,7 @@ if (is_post()) {
         $_err['stock_qty'] = 'Stock quantity must be a whole number, 0 or more';
     }
 
-    
+  
     if ($video_url != '') {
         if (!preg_match('/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))[a-zA-Z0-9_-]{11}/', $video_url)) {
             $_err['video_url'] = 'Enter a valid YouTube link, e.g. https://youtu.be/dQw4w9WgXcQ';
@@ -77,7 +81,7 @@ if (is_post()) {
             if ($exists === false) {
                 $_err['video_url'] = 'This YouTube video is unavailable, private, or was removed.';
             }
-          
+            
         }
     }
 
@@ -96,9 +100,9 @@ if (is_post()) {
 
     if (!$_err) {
         // Practical 6: crop/resize to 400x300, save to 'photos' folder
-        $photo = save_photo($f, 'photos', 400, 300);
+        $photo = save_photo($f, 'photos', 800, 600);
 
-        
+       
         $slug = strtolower(preg_replace('/[^a-z0-9]+/i', '-', trim($name)));
         $slug = trim($slug, '-');
         $new_photo = $slug . '-' . substr(uniqid(), -6) . '.jpg';
@@ -110,14 +114,19 @@ if (is_post()) {
         $stm->execute([$name, $category_id, $price, $stock_qty, $description, $photo, $video_url ?: null]);
         $product_id = $pdo->lastInsertId();
 
-        // Save any extra gallery photos (but it cannot be multiple photos)
-        
+       
         $order = 0;
+        $skipped = [];
         foreach ($gallery_files as $gf) {
-            if (strpos($gf->type, 'image/') !== 0 || $gf->size > 1 * 1024 * 1024) {
+            if (strpos($gf->type, 'image/') !== 0) {
+                $skipped[] = $gf->name . ' (not an image)';
                 continue;
             }
-            $gphoto = save_photo($gf, 'photos', 400, 300);
+            if ($gf->size > 5 * 1024 * 1024) {
+                $skipped[] = $gf->name . ' (over 5MB)';
+                continue;
+            }
+            $gphoto = save_photo($gf, 'photos', 800, 600);
             $gslug = $slug . '-gallery-' . substr(uniqid(), -6) . '.jpg';
             rename(root("photos/$gphoto"), root("photos/$gslug"));
 
@@ -125,7 +134,11 @@ if (is_post()) {
             $gstm->execute([$product_id, $gslug, $order++]);
         }
 
-        temp('info', "Product '$name' added successfully.");
+        $msg = "Product '$name' added successfully.";
+        if ($skipped) {
+            $msg .= ' Skipped: ' . implode(', ', $skipped) . '.';
+        }
+        temp('info', $msg);
         redirect('/product/admin-draft.php');
     }
 }
@@ -139,19 +152,19 @@ require '../_head.php';
 <form method="post" enctype="multipart/form-data" novalidate>
     <table class="form-table">
         <tr>
-            <td>Photo</td>
+            <td style="vertical-align:middle;">Photo</td>
             <td>
-                <label class="upload" id="upload-zone" tabindex="0">
-                    <img src="/images/placeholder.png" data-src="/images/placeholder.png" id="upload-preview">
+                <label class="upload" tabindex="0">
+                    <img src="/images/placeholder.png" data-src="/images/placeholder.png">
                     <?= html_file('photo', 'image/*', 'hidden') ?>
                 </label>
-                <p class="hint">This is the cover photo shown in the listing. Click to browse, or drag &amp; drop.</p>
+                <p class="hint">Required — click the box above to browse and select an image.</p>
                 <?= err('photo') ?>
             </td>
         </tr>
         <tr>
-            <td>Additional Photos</td>
-            <td>
+            <td style="vertical-align:top; padding-top:16px;">Additional Photos</td>
+            <td style="padding-top:16px;">
                 <input type="file" id="gallery" name="gallery[]" accept="image/*" multiple>
                 <p class="hint">Optional — pick several images for the product's photo gallery (max 1MB each).</p>
             </td>
@@ -264,44 +277,7 @@ require '../_head.php';
             setErr('video_url', ok ? '' : 'Enter a valid YouTube link, e.g. https://youtu.be/dQw4w9WgXcQ');
         });
     }
-
-    // ---- Drag-and-drop photo upload ----------------------------------- (not fucntion at all)
-    var zone = document.getElementById('upload-zone');
-    if (zone) {
-        var fileInput = zone.querySelector('input[type=file]');
-        var preview = document.getElementById('upload-preview');
-
-        ['dragenter', 'dragover'].forEach(function (evt) {
-            zone.addEventListener(evt, function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                zone.classList.add('drag-over');
-            });
-        });
-        ['dragleave', 'drop'].forEach(function (evt) {
-            zone.addEventListener(evt, function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                zone.classList.remove('drag-over');
-            });
-        });
-        zone.addEventListener('drop', function (e) {
-            var files = e.dataTransfer.files;
-            if (files && files.length) {
-                fileInput.files = files;
-                
-                if (preview && files[0].type.indexOf('image/') === 0) {
-                    preview.src = URL.createObjectURL(files[0]);
-                }
-                fileInput.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-        });
-    }
 })();
 </script>
-
-<style>
-    #upload-zone.drag-over { outline: 2px dashed #4a90d9; outline-offset: 2px; }
-</style>
 
 <?php require '../_foot.php'; ?>
