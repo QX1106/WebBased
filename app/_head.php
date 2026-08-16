@@ -30,6 +30,7 @@
     </style>
 </head>
 <body>
+<script>if (localStorage.getItem('sidebar-hidden') === '1') document.body.classList.add('sidebar-hidden');</script>
 
 <div id="flash"><?= h(temp('info')) ?></div>
 
@@ -40,6 +41,9 @@ $_nav_categories = $pdo->query("SELECT id, name FROM category ORDER BY name")->f
 
 <?php if ($_user && $_user->role == 'Admin'): ?>
     <?php $_path = $_SERVER['REQUEST_URI']; ?>
+    <div class="admin-topbar">
+        <button type="button" id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle sidebar">&#9776;</button>
+    </div>
     <div class="admin-layout">
         <aside class="sidebar">
             <a href="/" class="brand">Stationary Online Store</a>
