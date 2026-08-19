@@ -70,12 +70,20 @@ if (is_post()) {
     if (!$_err) {
         $photo = $f ? save_photo($f, 'uploads/member', 200, 200) : null;
 
-        $stm = $pdo->prepare("INSERT INTO member (username, email, password, phone, address, photo, role, status, created_at)
-                               VALUES (?, ?, ?, ?, ?, ?, 'Member', 'Active', NOW())");
-        $stm->execute([$username, $email, password_hash($password, PASSWORD_DEFAULT), $phone, $address, $photo]);
+        // OTP
+        $otp = strval(random_int(100000, 999999));
 
-        temp('info', 'Registration successful. Please login.');
-        redirect('/user/login.php');
+        $stm = $pdo->prepare("INSERT INTO member (username, email, password, phone, address, photo, role, status, email_verified, email_otp, email_otp_expires, created_at)
+                               VALUES (?, ?, ?, ?, ?, ?, 'Member', 'Active', 0, ?, NOW() + INTERVAL 15 MINUTE, NOW())");
+        $stm->execute([$username, $email, password_hash($password, PASSWORD_DEFAULT), $phone, $address, $photo, $otp]);
+
+        send_email(
+            $email,
+            'Verify your email - Stationary Online Store',
+            "<p>Hi " . h($username) . ",</p><p>Your verification code is:</p><h2>$otp</h2><p>This code expires in 15 minutes.</p>"
+        );
+
+        redirect('/member/verify-email.php?email=' . urlencode($email));
     }
 }
 
@@ -88,11 +96,11 @@ if (is_post()) {
 
     <label for="username">Username</label>
     <?= err('username') ?>
-    <?= html_text('username', "maxlength='50' autofocus") ?>
+    <?= html_text('username', "maxlength='50' autofocus data-check-available='username'") ?>
 
     <label for="email">Email</label>
     <?= err('email') ?>
-    <?= html_text('email', "maxlength='100'") ?>
+    <?= html_text('email', "maxlength='100' data-check-available='email'") ?>
 
     <label for="password">Password</label>
     <?= err('password') ?>

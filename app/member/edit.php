@@ -31,7 +31,6 @@ if (is_post()) {
     $f = get_file('photo');
     $remove_photo = post('remove_photo');
 
-    // Validate: username
     if ($username == '') {
         $_err['username'] = 'Required';
     } elseif (strlen($username) > 50) {
@@ -42,7 +41,6 @@ if (is_post()) {
         $_err['username'] = 'Username already taken';
     }
 
-    // Validate: email
     if ($email == '') {
         $_err['email'] = 'Required';
     } elseif (strlen($email) > 100) {
@@ -53,7 +51,6 @@ if (is_post()) {
         $_err['email'] = 'Email already registered';
     }
 
-    // Validate: phone
     if ($phone == '') {
         $_err['phone'] = 'Required';
     } elseif (strlen($phone) > 20) {
@@ -62,12 +59,10 @@ if (is_post()) {
         $_err['phone'] = 'Must be a valid Malaysian phone number, e.g. 012-3456789 or +60123456789';
     }
 
-    // Validate: address 
     if ($address != '' && strlen($address) > 255) {
         $_err['address'] = 'Maximum 255 characters';
     }
-
-    // Validate: photo 
+ 
     if ($f) {
         if (!str_starts_with($f->type, 'image/')) {
             $_err['photo'] = 'Must be an image file';
