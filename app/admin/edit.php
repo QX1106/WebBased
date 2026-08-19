@@ -37,22 +37,14 @@ if (is_post()) {
     $file = get_file('photo');
 
     if ($file) {
-        $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
-        $max_size = 2 * 1024 * 1024; // 2MB
-
-        $real_mime = @mime_content_type($file->tmp_name);
-
-        if (!in_array($real_mime, $allowed_types, true)) {
-            $_err['photo'] = 'Photo must be a JPG, PNG, or GIF image';
-        } elseif ($file->size > $max_size) {
-            $_err['photo'] = 'Photo must be smaller than 2MB';
+        if (!str_starts_with($file->type, 'image/')) {
+            $_err['photo'] = 'Must be an image file';
+        } elseif ($file->size > 3 * 1024 * 1024) {
+            $_err['photo'] = 'Max size 3MB';
+        } elseif (!getimagesize($file->tmp_name)) {
+            $_err['photo'] = 'File is not a valid image';
         } else {
-            try {
-                $photo = save_photo($file, 'uploads/member');
-            } catch (Exception $e) {
-                error_log('save_photo failed: ' . $e->getMessage());
-                $_err['photo'] = 'That file could not be processed as an image. Please try a different photo.';
-            }
+            $photo = save_photo($file, 'uploads/member');
         }
     }
 
@@ -79,16 +71,14 @@ require '../_head.php';
 <h1>Edit Profile</h1>
 
 <form method="post" enctype="multipart/form-data" novalidate>
-    <label class="upload">
-        <?php if ($_user->photo): ?>
-            <img src="/uploads/member/<?= h($_user->photo) ?>" alt="Profile photo">
-        <?php else: ?>
-            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect width='120' height='120' fill='%23e4ddd0'/%3E%3C/svg%3E" alt="No photo">
-        <?php endif; ?>
-        <?= html_file('photo', 'image/jpeg,image/png,image/gif', "style='display:none'") ?>
-    </label>
-    <small>Click the photo to change it. JPG, PNG, or GIF, up to 2MB.</small>
+    <label>Profile Photo</label>
     <?= err('photo') ?>
+    <div class="photo-drop" tabindex="0" role="button" aria-label="Upload profile photo">
+        <img src="<?= $_user->photo ? '/uploads/member/' . h($_user->photo) : '' ?>" <?= $_user->photo ? '' : 'style="display:none"' ?>>
+        <div class="photo-drop-hint" <?= $_user->photo ? 'style="display:none"' : '' ?>>Drag &amp; drop a photo here, or click to browse<br><small>Max 3MB</small></div>
+        <?= html_file('photo', 'image/*', "style='display:none'") ?>
+        <button type="button" class="photo-drop-clear">✕ Clear selection</button>
+    </div>
 
     <label for="username">Username</label>
     <?= html_text('username') ?>
@@ -105,15 +95,5 @@ require '../_head.php';
     <button>Save Changes</button>
     <a href="/admin/profile.php">Cancel</a>
 </form>
-
-<script>
-    document.getElementById('photo').addEventListener('change', function () {
-        var file = this.files[0];
-        var img = this.closest('label').querySelector('img');
-        if (file && file.type.startsWith('image/') && img) {
-            img.src = URL.createObjectURL(file);
-        }
-    });
-</script>
 
 <?php require '../_foot.php'; ?>
