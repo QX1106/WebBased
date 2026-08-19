@@ -1,7 +1,6 @@
 $(function () {
 
-    // Any element with [data-confirm] shows a confirm dialog before its
-    // default action (form submit, link navigation, etc.) is allowed to proceed
+    // Confirm dialog 
     $('[data-confirm]').on('click', function (e) {
         const text = $(this).data('confirm') || 'Are you sure?';
         if (!confirm(text)) {
@@ -10,51 +9,67 @@ $(function () {
         }
     });
 
-    // Sidebar hamburger toggle (Admin layout only) — lives in its own
-    // fixed top strip, outside both the sidebar and the main content, so
-    // it never overlaps either one. State is remembered across page loads
-    // via localStorage (applied early, in _head.php, to avoid a flash of
-    // the wrong state before this script runs).
+    // Admin sidebar
     $('#sidebar-toggle').on('click', function () {
         const hidden = $('body').toggleClass('sidebar-hidden').hasClass('sidebar-hidden');
         localStorage.setItem('sidebar-hidden', hidden ? '1' : '0');
     });
 
-    // Order status update (order/detail.php only, no-op elsewhere): picking
-    // "Cancelled" reveals the reason dropdown, and picking "Other" within
-    // that reveals the free-text field.
+    // Show/hide cancel-reason fields 
     function syncCancelReasonFields() {
         const $orderStatus = $('#order_status');
         if (!$orderStatus.length) return;
         $('#cancel-reason-wrap').toggle($orderStatus.val() === 'Cancelled');
         $('#cancel-other-wrap').toggle($('#cancel_reason').val() === 'Other');
     }
-    $('#order_status, #cancel_reason').on('change', syncCancelReasonFields);
+    $(document).on('change', '#order_status, #cancel_reason', syncCancelReasonFields);
     syncCancelReasonFields();
 
-    // Any element with [data-get] navigates to the given URL (or reload) on click
+    // Update order status 
+    $(document).on('submit', '#order-status-form', function (e) {
+        e.preventDefault();
+        const $form = $(this);
+        const orderId = $form.closest('#order-update-section').data('order-id');
+
+        $.ajax({
+            url: 'detail.php?id=' + orderId,
+            method: 'POST',
+            data: $form.serialize(),
+            dataType: 'json'
+        }).done(function (data) {
+            if (data.ok) {
+                $('#order-status-cell').text(data.status);
+                $('#order-timeline').html(data.timeline_html);
+                $('#order-update-section').html(data.update_html);
+            } else {
+                $.each(data.errors, function (key, msg) {
+                    $('#err_' + key).text(msg).addClass('err');
+                });
+            }
+        }).fail(function () {
+            alert('Could not update the order status. Please try again.');
+        });
+    });
+
+    // Navigate to URL
     $('[data-get]').on('click', function () {
         const url = $(this).data('get');
         location.href = url || location.href;
     });
 
-    // Any element with [data-print] opens the browser print dialog (used for
-    // "Download Receipt" — user picks "Save as PDF" as the destination)
+    // Print dialog 
     $('[data-print]').on('click', function () {
         window.print();
     });
 
-    // Any element with [data-post] submits a POST request on click
+    // Submit a POST request on click ([data-post])
     $('[data-post]').on('click', function () {
         const url = $(this).data('post') || location.href;
         const $form = $('<form>').attr({ method: 'POST', action: url }).appendTo('body');
         $form[0].submit();
     });
 
-    // Autofocus first input, or the field matching the error (if any).
-    // [data-no-autofocus] opts a field out of the *default* first-field pick
-    // (e.g. a form that isn't the main point of the page) without blocking
-    // the error-jump below — seeing the actual error still matters more.
+    // Autofocus first/error field
     let $target = $('form input, form select, form textarea').not('[type=hidden], [type=button], [type=submit], [data-no-autofocus]').first();
     const $err = $('.err').first();
     if ($err.length && $err.attr('id')) {
@@ -63,10 +78,36 @@ $(function () {
     }
     if ($target && $target.length) $target.trigger('focus');
 
-    // Reset button 
+    // Reset button
     $('[type=reset]').on('click', function (e) {
         e.preventDefault();
         location.reload();
+    });
+
+    // Live username/email availability check 
+    $('[data-check-available]').each(function () {
+        const $input = $(this);
+        const field = $input.data('check-available');
+        const $status = $('#err_' + $input.attr('id'));
+        const label = field === 'username' ? 'Username' : 'Email';
+        let timer = null;
+
+        $input.on('input', function () {
+            clearTimeout(timer);
+            const value = $input.val().trim();
+            if (!value) { $status.text('').removeClass('err ok'); return; }
+
+            timer = setTimeout(function () {
+                $.getJSON('/member/check-available.php', { field: field, value: value }, function (data) {
+                    if ($input.val().trim() !== value) return; // stale response, user kept typing
+                    if (data.available === true) {
+                        $status.text(label + ' is available').removeClass('err').addClass('ok');
+                    } else if (data.available === false) {
+                        $status.text(label + ' is already taken').removeClass('ok').addClass('err');
+                    }
+                });
+            }, 400);
+        });
     });
 
     // Phone validation
@@ -84,12 +125,7 @@ $(function () {
         }
     });
 
-    // Photo upload (register/edit member): click anywhere in the zone or
-    // drag & drop a file onto it — the native file input is hidden and only
-    // triggered programmatically, so there's one clear target instead of a
-    // separate "Choose File" button. "Clear selection" undoes just the photo
-    // pick (back to the existing photo, if editing) without resetting the
-    // rest of the form the way the page Reset button would.
+    // Photo upload
     $('.photo-drop').each(function () {
         const $zone = $(this);
         const $input = $zone.find('input[type=file]');
@@ -137,9 +173,7 @@ $(function () {
         });
 
         $zone.on('click', function (e) {
-            // e.target is the input itself when this fires because our own
-            // input.trigger('click') below bubbled back up — without this
-            // check that re-enters this same handler forever
+            // Avoid re-entering: input.trigger('click') below bubbles back up here
             if (e.target === $input[0]) return;
             if ($(e.target).closest('.photo-drop-clear').length) return;
             $input.trigger('click');

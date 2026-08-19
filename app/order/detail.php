@@ -72,9 +72,68 @@ if (is_post()) {
         $stm = $pdo->prepare("INSERT INTO order_status_log (order_id, status, note) VALUES (?, ?, ?)");
         $stm->execute([$id, $new_status, $note]);
 
-        temp('info', 'Order status updated.');
-        redirect("detail.php?id=$id");
+        // Sync in-memory $order so the data built below (used by the AJAX response) is current
+        $order->order_status = $new_status;
+        $allowed_next = $transitions[$order->order_status] ?? [];
+
+        if (!is_ajax()) {
+            temp('info', 'Order status updated.');
+            redirect("detail.php?id=$id");
+        }
+        // AJAX: fall through so $timeline/$allowed_next get rebuilt below
+        // against the fresh $order->order_status, then respond with JSON
+        // instead of a normal page render (see bottom of file).
+    } elseif (is_ajax()) {
+        header('Content-Type: application/json');
+        echo json_encode(['ok' => false, 'errors' => $_err]);
+        exit;
     }
+}
+
+// Additional Module (AJAX): renders the same "next status" form / "no
+// further changes" message used both on a normal page load and inside the
+// JSON response after an AJAX update, so the two never drift apart.
+function render_update_status_html($allowed_next, $cancel_reasons, $current_status) {
+    ob_start();
+    if ($allowed_next):
+?>
+    <form method="post" class="no-print" id="order-status-form">
+        <?= html_select('order_status', array_combine($allowed_next, $allowed_next), 'Choose next status', 'data-no-autofocus') ?>
+        <?= err('order_status') ?>
+
+        <div id="cancel-reason-wrap" style="display:none">
+            <label for="cancel_reason">Cancellation Reason</label>
+            <?= html_select('cancel_reason', $cancel_reasons, 'Choose a reason', 'data-no-autofocus') ?>
+            <?= err('cancel_reason') ?>
+
+            <div id="cancel-other-wrap" style="display:none">
+                <label for="cancel_other">Please specify</label>
+                <?= html_text('cancel_other', "maxlength='255' data-no-autofocus") ?>
+                <?= err('cancel_other') ?>
+            </div>
+        </div>
+
+        <button type="submit">Update</button>
+    </form>
+<?php else: ?>
+    <p class="no-print">This order is <?= h($current_status) ?> and cannot be changed further.</p>
+<?php endif;
+    return ob_get_clean();
+}
+
+// Additional Module (AJAX): same idea for the Status Timeline list items.
+function render_timeline_html($timeline) {
+    ob_start();
+    foreach ($timeline as $t):
+?>
+        <li class="<?= h($t['state']) ?>">
+            <b><?= h($t['label']) ?></b>
+            <span><?= $t['time'] ? h($t['time']) : 'Not yet' ?></span>
+            <?php if ($t['note']): ?><div class="timeline-note">Reason: <?= h($t['note']) ?></div><?php endif; ?>
+        </li>
+<?php
+    endforeach;
+    return ob_get_clean();
 }
 
 $stm = $pdo->prepare("SELECT oi.*, p.name AS product_name
@@ -118,6 +177,21 @@ if ($cancelled_at !== null) {
     $timeline[] = ['label' => 'Cancelled', 'time' => $cancelled_at, 'state' => 'cancelled', 'note' => $cancelled_note];
 }
 
+// Additional Module (AJAX): the update succeeded and this was an AJAX
+// request (see the fall-through above) — respond with JSON instead of
+// rendering the full page, using the exact same render_*_html() helpers
+// the normal page render below uses.
+if (is_post() && !$_err && is_ajax()) {
+    header('Content-Type: application/json');
+    echo json_encode([
+        'ok' => true,
+        'status' => $order->order_status,
+        'timeline_html' => render_timeline_html($timeline),
+        'update_html' => render_update_status_html($allowed_next, $cancel_reasons, $order->order_status),
+    ]);
+    exit;
+}
+
 $order_status = $_err ? ($new_status ?? '') : '';
 $cancel_reason = $_err ? ($cancel_reason ?? '') : '';
 $cancel_other = $_err ? ($cancel_other ?? '') : '';
@@ -134,7 +208,7 @@ $cancel_other = $_err ? ($cancel_other ?? '') : '';
     <tr><th>Member</th><td><?= h($order->username) ?> (<?= h($order->email) ?>) — <?= h($order->phone) ?></td></tr>
     <tr><th>Address</th><td><?= h($order->address) ?></td></tr>
     <tr><th>Total</th><td>RM <?= number_format($order->total_amount, 2) ?></td></tr>
-    <tr><th>Status</th><td><?= h($order->order_status) ?></td></tr>
+    <tr><th>Status</th><td id="order-status-cell"><?= h($order->order_status) ?></td></tr>
 </table>
 
 <h2 class="no-print">Items</h2>
@@ -189,39 +263,12 @@ $cancel_other = $_err ? ($cancel_other ?? '') : '';
 </div>
 
 <h2 class="no-print">Status Timeline</h2>
-<ul class="timeline no-print">
-    <?php foreach ($timeline as $t): ?>
-        <li class="<?= h($t['state']) ?>">
-            <b><?= h($t['label']) ?></b>
-            <span><?= $t['time'] ? h($t['time']) : 'Not yet' ?></span>
-            <?php if ($t['note']): ?><div class="timeline-note">Reason: <?= h($t['note']) ?></div><?php endif; ?>
-        </li>
-    <?php endforeach; ?>
-</ul>
+<ul class="timeline no-print" id="order-timeline"><?= render_timeline_html($timeline) ?></ul>
 
 <h2 class="no-print">Update Status</h2>
-<?php if ($allowed_next): ?>
-    <form method="post" class="no-print">
-        <?= html_select('order_status', array_combine($allowed_next, $allowed_next), 'Choose next status', 'data-no-autofocus') ?>
-        <?= err('order_status') ?>
-
-        <div id="cancel-reason-wrap" style="display:none">
-            <label for="cancel_reason">Cancellation Reason</label>
-            <?= html_select('cancel_reason', $cancel_reasons, 'Choose a reason', 'data-no-autofocus') ?>
-            <?= err('cancel_reason') ?>
-
-            <div id="cancel-other-wrap" style="display:none">
-                <label for="cancel_other">Please specify</label>
-                <?= html_text('cancel_other', "maxlength='255' data-no-autofocus") ?>
-                <?= err('cancel_other') ?>
-            </div>
-        </div>
-
-        <button type="submit">Update</button>
-    </form>
-<?php else: ?>
-    <p class="no-print">This order is <?= h($order->order_status) ?> and cannot be changed further.</p>
-<?php endif; ?>
+<div id="order-update-section" data-order-id="<?= h($order->order_id) ?>">
+    <?= render_update_status_html($allowed_next, $cancel_reasons, $order->order_status) ?>
+</div>
 
 <p class="no-print"><a href="list.php" class="btn-outline">Back to Order Listing</a></p>
 
