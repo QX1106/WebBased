@@ -1,5 +1,12 @@
 <?php
 
+require_once __DIR__ . '/lib/PHPMailer.php';
+require_once __DIR__ . '/lib/SMTP.php';
+require_once __DIR__ . '/lib/Exception.php';
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception as PHPMailerException;
+
 date_default_timezone_set('Asia/Kuala_Lumpur');
 session_start();
 
@@ -57,6 +64,11 @@ function is_post() {
     return $_SERVER['REQUEST_METHOD'] == 'POST';
 }
 
+// AJAX
+function is_ajax() {
+    return isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
+}
+
 function trim_value($value) {
     if (is_array($value)) {
         return array_map('trim', $value);
@@ -102,12 +114,9 @@ function temp($key, $value = null) {
 // =========================================================
 // SECURITY (LOGIN / LOGOUT / AUTH)
 // =========================================================
-// NOTE: our member table has NO admin role mixed with member accounts
-// unless you decide role column in `member` covers both. 
 $_user = $_SESSION['user'] ?? null;
 
-// Online-now heartbeat: every request from a logged-in user refreshes
-// their last_active timestamp (used to show who's online right now)
+// Online and last active
 if ($_user) {
     $stm = $pdo->prepare("UPDATE member SET last_active = NOW() WHERE member_id = ?");
     $stm->execute([$_user->member_id]);
@@ -137,6 +146,37 @@ function auth(...$roles) {
         }
     }
     redirect('/user/login.php');
+}
+
+// =========================================================
+// EMAIL (PHPMailer + Gmail SMTP)
+// =========================================================
+function get_mail() {
+    $m = new PHPMailer(true);
+    $m->isSMTP();
+    $m->SMTPAuth = true;
+    $m->Host = 'smtp.gmail.com';
+    $m->Port = 587;
+    $m->Username = 'your-email@gmail.com';
+    $m->Password = 'your-16-char-app-password';
+    $m->CharSet = 'utf-8';
+    $m->setFrom($m->Username, 'Stationary Online Store');
+    return $m;
+}
+
+function send_email($to, $subject, $body) {
+    try {
+        $mail = get_mail();
+        $mail->addAddress($to);
+        $mail->isHTML(true);
+        $mail->Subject = $subject;
+        $mail->Body = $body;
+        $mail->send();
+        return true;
+    } catch (PHPMailerException $e) {
+        error_log('send_email failed: ' . $e->getMessage());
+        return false;
+    }
 }
 
 // =========================================================
@@ -304,8 +344,15 @@ function get_file($key) {
 
 function save_photo($f, $folder, $width = 200, $height = 200) {
     require_once root('lib/SimpleImage.php');
+
+    // Auto-create upload folder if missing
+    $dir = root($folder);
+    if (!is_dir($dir)) {
+        mkdir($dir, 0777, true);
+    }
+
     $photo = uniqid() . '.jpg';
-    $path = root("$folder/$photo");
+    $path = "$dir/$photo";
     $img = new \claviska\SimpleImage();
     $img->fromFile($f->tmp_name)
         ->thumbnail($width, $height)

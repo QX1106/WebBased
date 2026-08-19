@@ -110,6 +110,7 @@ footer {
 
 .err { color: var(--danger); font-size: 0.85em; }
 .err-input { border-color: var(--danger) !important; }
+.ok { color: #3a7d44; font-size: 0.85em; }
 
 form { max-width: 480px; }
 
@@ -203,9 +204,7 @@ form.search-bar button, form.search-bar a { margin-top: 0; }
 }
 .btn-accent:hover { background: #f0d0bd; text-decoration: none; }
 
-/* Photo upload — click anywhere in the zone or drag & drop a file onto it;
-   the native file input stays in the DOM (drag & drop needs it) but hidden,
-   since the whole zone now acts as the picker trigger. */
+/* drag and drop */
 .photo-drop {
     width: 160px;
     padding: 16px;
@@ -547,6 +546,25 @@ svg.chart .chart-value { font-family: 'Work Sans', sans-serif; font-size: 11px; 
 .pager a { display: inline-block; min-width: 16px; text-align: center; padding: 6px 10px; margin-right: 4px; border: 1px solid var(--border); text-decoration: none; color: var(--ink); font-size: 13px; }
 .pager a:hover { text-decoration: none; border-color: var(--ink); }
 .pager a.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+/* Password field show/hide toggle (login/register/reset-password) */
+.pw-field { position: relative; }
+.pw-field input { padding-right: 42px; }
+/* Hide Edge's own built-in reveal icon so it doesn't double up with ours */
+.pw-field input::-ms-reveal { display: none; }
+.toggle-pw {
+    position: absolute;
+    right: 4px;
+    top: 4px;
+    background: none;
+    border: none;
+    padding: 6px 8px;
+    margin: 0;
+    cursor: pointer;
+    color: var(--muted);
+}
+.toggle-pw:hover { background: none; color: var(--ink); }
+.toggle-pw svg { display: block; width: 18px; height: 18px; }
 
 /* ---------------------------------------------------------------------- */
 /* Print (order receipt) — "Download Receipt" opens the browser print       */
