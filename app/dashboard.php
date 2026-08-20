@@ -41,6 +41,16 @@ foreach ($stm as $row) {
 
 $chart_max = max(max($months), 1);
 
+// Top Selling Products 
+$top_products = $pdo->query("SELECT p.name, SUM(oi.quantity) AS total_qty, SUM(oi.quantity * oi.unit_price) AS total_revenue
+                              FROM order_item oi
+                              JOIN orders o ON oi.order_id = o.order_id
+                              JOIN product p ON oi.product_id = p.id
+                              WHERE o.order_status = 'Completed'
+                              GROUP BY oi.product_id, p.name
+                              ORDER BY total_qty DESC
+                              LIMIT 5")->fetchAll();
+
 ?>
 <?php require '_head.php'; ?>
 
@@ -102,5 +112,22 @@ $chart_max = max(max($months), 1);
     <?php endforeach; ?>
     <line x1="0" y1="<?= $top_margin + $chart_h ?>" x2="<?= $svg_w ?>" y2="<?= $top_margin + $chart_h ?>" class="chart-axis"></line>
 </svg>
+
+<h2>Top Selling Products</h2>
+<?php if ($top_products): ?>
+    <table class="table">
+        <tr><th>Rank</th><th>Product</th><th>Units Sold</th><th>Revenue</th></tr>
+        <?php foreach ($top_products as $i => $p): ?>
+            <tr>
+                <td>#<?= $i + 1 ?></td>
+                <td><?= h($p->name) ?></td>
+                <td><?= (int) $p->total_qty ?></td>
+                <td>RM <?= number_format($p->total_revenue, 2) ?></td>
+            </tr>
+        <?php endforeach; ?>
+    </table>
+<?php else: ?>
+    <p>No completed orders yet.</p>
+<?php endif; ?>
 
 <?php require '_foot.php'; ?>

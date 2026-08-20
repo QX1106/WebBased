@@ -201,7 +201,11 @@ $cancel_other = $_err ? ($cancel_other ?? '') : '';
 
 <h1 class="no-print">Order #<?= h($order->order_id) ?></h1>
 
-<p class="no-print"><button type="button" class="btn-accent" data-print>Download Receipt</button></p>
+<p class="no-print receipt-actions">
+    <a href="receipt-pdf.php?id=<?= h($order->order_id) ?>" class="btn-accent">Download Receipt (PDF)</a>
+    <button type="button" class="btn-outline" id="send-receipt-email" data-order-id="<?= h($order->order_id) ?>">Send Email to Customer</button>
+    <span id="send-receipt-status"></span>
+</p>
 
 <table class="detail no-print">
     <tr><th>Order Date</th><td><?= h($order->order_date) ?></td></tr>
@@ -223,44 +227,6 @@ $cancel_other = $_err ? ($cancel_other ?? '') : '';
         </tr>
     <?php endforeach; ?>
 </table>
-
-<div class="receipt">
-    <div class="receipt-store">
-        <div class="receipt-store-name">Stationary Online Store</div>
-        <div class="receipt-store-sub">Order Receipt</div>
-    </div>
-
-    <div class="receipt-row"><span>Order #</span><span><?= h($order->order_id) ?></span></div>
-    <div class="receipt-row"><span>Order Date</span><span><?= h($order->order_date) ?></span></div>
-    <div class="receipt-row"><span>Status</span><span><?= h($order->order_status) ?></span></div>
-
-    <div class="receipt-divider"></div>
-
-    <div class="receipt-row"><span>Customer</span><span><?= h($order->username) ?></span></div>
-    <div class="receipt-row"><span>Email</span><span><?= h($order->email) ?></span></div>
-    <div class="receipt-row"><span>Phone</span><span><?= h($order->phone) ?></span></div>
-    <div class="receipt-row"><span>Address</span><span><?= h($order->address) ?></span></div>
-
-    <div class="receipt-divider"></div>
-
-    <table class="receipt-items">
-        <tr><th>Item</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr>
-        <?php foreach ($items as $it): ?>
-            <tr>
-                <td><?= h($it->product_name) ?></td>
-                <td><?= h($it->quantity) ?></td>
-                <td>RM <?= number_format($it->unit_price, 2) ?></td>
-                <td>RM <?= number_format($it->unit_price * $it->quantity, 2) ?></td>
-            </tr>
-        <?php endforeach; ?>
-    </table>
-
-    <div class="receipt-divider"></div>
-
-    <div class="receipt-total"><span>Total</span><span>RM <?= number_format($order->total_amount, 2) ?></span></div>
-
-    <div class="receipt-footer">Thank you for shopping with us!</div>
-</div>
 
 <h2 class="no-print">Status Timeline</h2>
 <ul class="timeline no-print" id="order-timeline"><?= render_timeline_html($timeline) ?></ul>
