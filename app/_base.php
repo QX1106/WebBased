@@ -116,9 +116,10 @@ function temp($key, $value = null) {
 $_user = $_SESSION['user'] ?? null;
 
 // Online and last active
+// FIX: member's primary key column is `id`, not `member_id`.
 if ($_user) {
-    $stm = $pdo->prepare("UPDATE member SET last_active = NOW() WHERE member_id = ?");
-    $stm->execute([$_user->member_id]);
+    $stm = $pdo->prepare("UPDATE member SET last_active = NOW() WHERE id = ?");
+    $stm->execute([$_user->id]);
 }
 
 function login($user, $url = '/') {
@@ -126,8 +127,9 @@ function login($user, $url = '/') {
 
     $_SESSION['user'] = $user;
 
+    // FIX: same member_id -> id correction as above.
     $stm = $pdo->prepare("INSERT INTO login_log (member_id, login_time) VALUES (?, NOW())");
-    $stm->execute([$user->member_id]);
+    $stm->execute([$user->id]);
 
     redirect($url);
 }

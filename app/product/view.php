@@ -1,5 +1,5 @@
 <?php require '../_base.php'; ?>
-<?php // auth('Admin'); // TODO: re-enable once JW login page is ready ?>
+<?php auth('Admin'); ?>
 <?php
 
 $id = get('id');
@@ -13,12 +13,11 @@ $product = $stm->fetch();
 
 if (!$product) {
     temp('info', 'Product not found.');
-    redirect('/product/admin-draft.php');
+    redirect('/product/list.php');
 }
 
 function youtube_embed_url($url) {
     if ($url && preg_match('/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([a-zA-Z0-9_-]{11})/', $url, $m)) {
-        
         return 'https://www.youtube-nocookie.com/embed/' . $m[1];
     }
     return null;
@@ -36,7 +35,6 @@ foreach ($gallery_stm->fetchAll() as $gp) {
     $all_photos[] = $gp->photo;
 }
 
-
 $slides = [];
 if ($embed_url) {
     $slides[] = ['type' => 'video', 'src' => $embed_url];
@@ -45,13 +43,9 @@ foreach ($all_photos as $ph) {
     $slides[] = ['type' => 'image', 'src' => "/photos/$ph"];
 }
 
-$_title = 'Product Detail (Admin Draft)';
+$_title = 'Product Detail';
 require '../_head.php';
 ?>
-
-<div class="admin-draft-notice" style="background:#fff3cd; border:1px solid #ffe08a; padding:8px 12px; margin-bottom:12px;">
-    <strong>Admin Draft</strong> — temporary page for testing before login/auth is wired up.
-</div>
 
 <h1>Product Detail</h1>
 
@@ -104,7 +98,7 @@ require '../_head.php';
 <p style="width : 400px;">
     <a href="/product/update.php?id=<?= $product->id ?>">Edit</a> |
     <a href="/product/delete.php?id=<?= $product->id ?>" onclick="return confirm('Delete this product?')">Delete</a> |
-    <a href="/product/admin-draft.php">Back to List</a>
+    <a href="/product/list.php">Back to List</a>
 </p>
 
 <?php if (count($slides) > 1): ?>
