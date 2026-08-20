@@ -1,5 +1,5 @@
 <?php require '../_base.php'; ?>
-<?php // auth('Admin'); // TODO: re-enable once JW login page  is ready ?>
+<?php auth('Admin'); ?>
 <?php
 
 $fields = [
@@ -15,17 +15,14 @@ in_array($sort, $fields) || $sort = 'p.name';
 $dir = get('dir', 'asc');
 in_array($dir, ['asc', 'desc']) || $dir = 'asc';
 
-// ---- demo1 + demo2: search by name, filter by category ------------------
 $name = get('name', '');
 $category_id = get('category_id', '');
 
 $categories = $pdo->query("SELECT id, name FROM category ORDER BY name")
                    ->fetchAll(PDO::FETCH_KEY_PAIR);
 
-// ---- demo5: paging --------------------------------------------------------
 $page = get('page', 1);
 
-// ---- demo3: combined WHERE (name LIKE ?) AND (category_id = ? OR ?) -----
 $sql = "SELECT p.*, c.name AS category_name
         FROM product p
         JOIN category c ON c.id = p.category_id
@@ -37,17 +34,11 @@ $params = ["%$name%", $category_id, $category_id == ''];
 $p = new SimplePager($pdo, $sql, $params, 10, $page);
 $arr = $p->result;
 
-// ---- demo6: keep search/filter alive across sort + page links -----------
 $qs = '&name=' . urlencode($name) . '&category_id=' . urlencode($category_id);
 
-$_title = 'Product Maintenance (Admin Draft)';
+$_title = 'Product Maintenance';
 require '../_head.php';
 ?>
-
-<div class="admin-draft-notice" style="background:#fff3cd; border:1px solid #ffe08a; padding:8px 12px; margin-bottom:12px;">
-    <strong>Admin Draft</strong> — temporary page for testing before login/auth is wired up.
-    Not linked from the public site.
-</div>
 
 <h1>Product Listing</h1>
 
@@ -57,7 +48,7 @@ require '../_head.php';
     <?= html_search('name', "placeholder='Search product name'") ?>
     <?= html_select('category_id', $categories, 'All Categories') ?>
     <button>Search</button>
-    <a href="/product/admin-draft.php">Reset</a>
+    <a href="/product/list.php">Reset</a>
 </form>
 
 <p>
