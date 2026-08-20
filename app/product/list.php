@@ -79,14 +79,16 @@ require '../_head.php';
 
 <table class="table">
     <tr>
+        <th style="text-align:center;"><input type="checkbox" id="select-all"></th>
         <th>Photo</th>
         <?= table_headers($fields, $sort, $dir, "$qs&page=$page") ?>
-        <th>Actions</th>
+        <th style="white-space:nowrap;">Actions</th>
     </tr>
 
     <?php foreach ($arr as $row): ?>
     <?php $is_low = $row->stock_qty <= LOW_STOCK_THRESHOLD; ?>
     <tr style="<?= $is_low ? 'background:#fdecea;' : '' ?>">
+        <td style="text-align:center;"><input type="checkbox" name="ids[]" value="<?= $row->id ?>" class="row-check"></td>
         <td>
             <?php if ($row->photo): ?>
                 <img src="/photos/<?= h($row->photo) ?>" width="50" height="50">
@@ -96,14 +98,14 @@ require '../_head.php';
         </td>
         <td><a href="/product/view.php?id=<?= $row->id ?>"><?= h($row->name) ?></a></td>
         <td><?= h($row->category_name) ?></td>
-        <td>RM <?= number_format($row->price, 2) ?></td>
-        <td>
+        <td style="white-space:nowrap;">RM <?= number_format($row->price, 2) ?></td>
+        <td style="white-space:nowrap;">
             <?= $row->stock_qty ?>
             <?php if ($is_low): ?>
                 <span style="color:#c0392b; font-weight:bold;" title="Low stock">⚠</span>
             <?php endif; ?>
         </td>
-        <td>
+        <td style="white-space:nowrap;">
             <a href="/product/update.php?id=<?= $row->id ?>">Edit</a> |
             <a href="/product/delete.php?id=<?= $row->id ?>" onclick="return confirm('Delete this product?')">Delete</a>
         </td>
@@ -111,9 +113,49 @@ require '../_head.php';
     <?php endforeach ?>
 
     <?php if (!$arr): ?>
-    <tr><td colspan="6">No products found.</td></tr>
+    <tr><td colspan="7">No products found.</td></tr>
     <?php endif ?>
 </table>
+
+<?php if ($arr): ?>
+<p>
+    <button type="button" id="delete-selected-btn">Delete Selected</button>
+</p>
+<?php endif; ?>
+
+<!-- Hidden form, submitted via JS — keeps <table> out of a <form> wrapper -->
+<form method="post" action="/product/batch-delete.php" id="batch-form" style="display:none;"></form>
+
+<script>
+    document.getElementById('select-all').addEventListener('change', function () {
+        document.querySelectorAll('.row-check').forEach(function (cb) {
+            cb.checked = this.checked;
+        }.bind(this));
+    });
+
+    var deleteBtn = document.getElementById('delete-selected-btn');
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', function () {
+            var checked = document.querySelectorAll('.row-check:checked');
+            if (checked.length === 0) {
+                alert('Select at least one product first.');
+                return;
+            }
+            if (!confirm('Delete all selected products? This cannot be undone.')) {
+                return;
+            }
+            var form = document.getElementById('batch-form');
+            checked.forEach(function (cb) {
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'ids[]';
+                input.value = cb.value;
+                form.appendChild(input);
+            });
+            form.submit();
+        });
+    }
+</script>
 
 <br>
 
