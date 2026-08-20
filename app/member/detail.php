@@ -13,7 +13,7 @@ if (!$m) {
     redirect('list.php');
 }
 
-// Block / Unblock member (Additional Module)
+// block/unblock member
 if (is_post() && post('action') == 'toggle_status') {
     $new_status = $m->status == 'Blocked' ? 'Active' : 'Blocked';
     $stm = $pdo->prepare("UPDATE member SET status = ? WHERE member_id = ?");
@@ -28,19 +28,16 @@ if (is_post() && post('action') == 'toggle_status') {
     redirect("detail.php?id=$id");
 }
 
-// Order history belonging to this member (Additional Module)
+// Member's order history
 $stm = $pdo->prepare("SELECT * FROM orders WHERE member_id = ? ORDER BY order_date DESC");
 $stm->execute([$id]);
 $orders = $stm->fetchAll();
 
-// Customer value summary (Additional Module): ties Member + Order together —
-// only Completed orders count towards spend (same rule as Dashboard revenue —
-// Pending/Processing/Shipped haven't actually been fulfilled/paid for yet),
-// but every order (including Cancelled) still counts as one placed
+// Customer's total order
 $order_count = count($orders);
 $total_spent = 0;
 foreach ($orders as $o) {
-    if ($o->order_status == 'Completed') {
+    if ($o->order_status != 'Cancelled') {
         $total_spent += $o->total_amount;
     }
 }

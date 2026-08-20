@@ -52,18 +52,29 @@ $_nav_categories = $pdo->query("SELECT id, name FROM category ORDER BY name")->f
                 <a href="/member/list.php" class="<?= str_starts_with($_path, '/member') ? 'active' : '' ?>">Members</a>
                 <a href="/order/list.php" class="<?= str_starts_with($_path, '/order') ? 'active' : '' ?>">Orders</a>
                 <a href="/product/list.php" class="<?= str_starts_with($_path, '/product') ? 'active' : '' ?>">Products</a>
-                <!-- TEMP: remove once /product/list.php is built -->
-                <a href="/product/admin-draft.php">Product (Admin Draft)</a>
+                <a href="/admin/profile.php" class="<?= $_path == '/admin/profile.php' || $_path == '/admin/edit.php' || $_path == '/admin/password.php' ? 'active' : '' ?>">My Profile</a>
             </nav>
             <div class="sidebar-foot">
-                <div class="user-chip">
+                <a href="/admin/profile.php" class="user-chip" style="text-decoration:none;">
                     <?= user_avatar($_user, 32) ?>
                     <span><?= h($_user->username) ?> (<?= h($_user->role) ?>)</span>
-                </div>
+                </a>
                 <a href="/user/logout.php">Logout</a>
             </div>
         </aside>
         <main>
+<?php elseif (str_starts_with($_path ?? $_SERVER['REQUEST_URI'], '/admin/')): ?>
+    <!-- Admin login/forgot-password pages: shown before the admin is signed
+         in, so the full admin sidebar (and its auth-gated links) don't apply
+         yet — just a minimal header instead. -->
+
+<header>
+    <nav>
+        <a href="/">Stationary Online Store</a>
+    </nav>
+</header>
+
+<main>
 <?php else: ?>
 
 <header>
@@ -84,15 +95,12 @@ $_nav_categories = $pdo->query("SELECT id, name FROM category ORDER BY name")->f
                 <a href="/cart/index.php">Cart</a>
                 <a href="/order/history.php">My Orders</a>
             <?php endif; ?>
-            <span class="user-chip"><?= user_avatar($_user, 28) ?> <?= h($_user->username) ?> (<?= h($_user->role) ?>)</span>
+            <span class="user-chip"><a href="/member/profile.php" style="display:flex;align-items:center;gap:8px;text-decoration:none;"><?= user_avatar($_user, 28) ?> <?= h($_user->username) ?> (<?= h($_user->role) ?>)</a></span>
             <a href="/user/logout.php">Logout</a>
         <?php else: ?>
             <a href="/user/login.php">Login</a>
             <a href="/member/register.php">Register</a>
         <?php endif; ?>
-
-        <!-- TEMP: remove once /product/list.php is built -->
-        <a href="/product/admin-draft.php">Product (Admin Draft)</a>
     </nav>
 </header>
 
