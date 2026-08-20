@@ -70,6 +70,7 @@ require '../_head.php';
 
 <div class="toolbar">
     <a href="/product/export-csv.php?name=<?= urlencode($name) ?>&category_id=<?= urlencode($category_id) ?>" class="btn-accent">Export CSV</a>
+    <a href="/product/batch-insert.php" class="btn-accent">Batch Insert (CSV)</a>
 </div>
 
 <p>
