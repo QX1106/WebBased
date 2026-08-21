@@ -52,8 +52,6 @@ $_nav_categories = $pdo->query("SELECT id, name FROM category ORDER BY name")->f
                 <a href="/member/list.php" class="<?= str_starts_with($_path, '/member') ? 'active' : '' ?>">Members</a>
                 <a href="/order/list.php" class="<?= str_starts_with($_path, '/order') ? 'active' : '' ?>">Orders</a>
                 <a href="/product/list.php" class="<?= str_starts_with($_path, '/product') ? 'active' : '' ?>">Products</a>
-                <!-- TEMP: remove once /product/list.php is built -->
-                <a href="/product/admin-draft.php">Product (Admin Draft)</a>
                 <a href="/admin/profile.php" class="<?= $_path == '/admin/profile.php' || $_path == '/admin/edit.php' || $_path == '/admin/password.php' ? 'active' : '' ?>">My Profile</a>
             </nav>
             <div class="sidebar-foot">
@@ -103,9 +101,6 @@ $_nav_categories = $pdo->query("SELECT id, name FROM category ORDER BY name")->f
             <a href="/user/login.php">Login</a>
             <a href="/member/register.php">Register</a>
         <?php endif; ?>
-
-        <!-- TEMP: remove once /product/list.php is built -->
-        <a href="/product/admin-draft.php">Product (Admin Draft)</a>
     </nav>
 </header>
 
