@@ -1,5 +1,5 @@
 <?php require '../_base.php'; ?>
-<?php // auth('Admin'); // TODO: re-enable once JW login page is ready ?>
+<?php auth('Admin'); ?>
 <?php
 
 $id = get('id');
