@@ -21,7 +21,6 @@ if (is_post()) {
         $stm->execute([$email]);
         $member = $stm->fetch();
 
-        // Same message either way, so we don't reveal which emails are registered.
         if ($member) {
             $token = bin2hex(random_bytes(32));
             $pdo->prepare("UPDATE member SET reset_token = ?, reset_expires = NOW() + INTERVAL 1 HOUR WHERE member_id = ?")

@@ -7,7 +7,10 @@ auto_complete_shipped_orders();
 $_err = [];
 $id = get('id');
 
-// Order status 
+$stm = $pdo->prepare("SELECT request_id FROM cancel_request WHERE order_id = ? AND status = 'Pending'");
+$stm->execute([$id]);
+$pending_cancel_request = $stm->fetch();
+
 $transitions = [
     'Pending'    => ['Processing', 'Cancelled'],
     'Processing' => ['Shipped', 'Cancelled'],
@@ -72,7 +75,7 @@ if (is_post()) {
         $stm = $pdo->prepare("INSERT INTO order_status_log (order_id, status, note) VALUES (?, ?, ?)");
         $stm->execute([$id, $new_status, $note]);
 
-        // Sync in-memory $order so the data built below (used by the AJAX response) is current
+        // Sync 
         $order->order_status = $new_status;
         $allowed_next = $transitions[$order->order_status] ?? [];
 
@@ -80,9 +83,6 @@ if (is_post()) {
             temp('info', 'Order status updated.');
             redirect("detail.php?id=$id");
         }
-        // AJAX: fall through so $timeline/$allowed_next get rebuilt below
-        // against the fresh $order->order_status, then respond with JSON
-        // instead of a normal page render (see bottom of file).
     } elseif (is_ajax()) {
         header('Content-Type: application/json');
         echo json_encode(['ok' => false, 'errors' => $_err]);
@@ -90,9 +90,6 @@ if (is_post()) {
     }
 }
 
-// Additional Module (AJAX): renders the same "next status" form / "no
-// further changes" message used both on a normal page load and inside the
-// JSON response after an AJAX update, so the two never drift apart.
 function render_update_status_html($allowed_next, $cancel_reasons, $current_status) {
     ob_start();
     if ($allowed_next):
@@ -121,7 +118,7 @@ function render_update_status_html($allowed_next, $cancel_reasons, $current_stat
     return ob_get_clean();
 }
 
-// Additional Module (AJAX): same idea for the Status Timeline list items.
+// AJAX
 function render_timeline_html($timeline) {
     ob_start();
     foreach ($timeline as $t):
@@ -177,10 +174,7 @@ if ($cancelled_at !== null) {
     $timeline[] = ['label' => 'Cancelled', 'time' => $cancelled_at, 'state' => 'cancelled', 'note' => $cancelled_note];
 }
 
-// Additional Module (AJAX): the update succeeded and this was an AJAX
-// request (see the fall-through above) — respond with JSON instead of
-// rendering the full page, using the exact same render_*_html() helpers
-// the normal page render below uses.
+// AJAX
 if (is_post() && !$_err && is_ajax()) {
     header('Content-Type: application/json');
     echo json_encode([
@@ -200,6 +194,13 @@ $cancel_other = $_err ? ($cancel_other ?? '') : '';
 <?php require '../_head.php'; ?>
 
 <h1 class="no-print">Order #<?= h($order->order_id) ?></h1>
+
+<?php if ($pending_cancel_request): ?>
+    <p class="no-print notice-banner">
+        ⚠ This order has a pending cancellation request.
+        <a href="/order/cancel-request-review.php?id=<?= $pending_cancel_request->request_id ?>">Review Request</a>
+    </p>
+<?php endif; ?>
 
 <p class="no-print receipt-actions">
     <a href="receipt-pdf.php?id=<?= h($order->order_id) ?>" class="btn-accent">Download Receipt (PDF)</a>

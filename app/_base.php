@@ -236,6 +236,11 @@ function html_file($key, $accept = '', $attr = '') {
     return "<input type='file' id='$key' name='$key' accept='$accept' $attr>";
 }
 
+function html_date($key, $attr = '') {
+    $value = h($GLOBALS[$key] ?? '');
+    return "<input type='date' id='$key' name='$key' value='$value' $attr>";
+}
+
 function html_hidden($key, $value) {
     $value = h($value);
     return "<input type='hidden' id='$key' name='$key' value='$value'>";
@@ -312,6 +317,14 @@ function is_unique($table, $field, $value, $except_id = null, $id_field = null) 
     $stm = $pdo->prepare($sql);
     $stm->execute($params);
     return $stm->fetchColumn() == 0;
+}
+
+// Voucher
+function voucher_effective_status($voucher) {
+    if ($voucher->status == 'Active' && $voucher->valid_until < date('Y-m-d')) {
+        return 'Expired';
+    }
+    return $voucher->status;
 }
 
 function is_exists($table, $field, $value) {
@@ -410,8 +423,7 @@ function export_table_pdf($title, $headers, $rows, $filename) {
     $pdf->Output($filename, 'D');
 }
 
-// Builds the order receipt PDF (shared by receipt-pdf.php's download and
-// send-receipt-email.php's emailed attachment, so both always match).
+// PDF
 function build_order_receipt_pdf($order, $items) {
     require_once root('lib/TCPDF/tcpdf.php');
 

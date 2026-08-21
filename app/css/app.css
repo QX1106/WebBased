@@ -113,6 +113,22 @@ footer {
 .ok { color: #3a7d44; font-size: 0.85em; }
 
 form { max-width: 480px; }
+form:has(.form-table) { max-width: 640px; }
+
+.form-table { width: 100%; border-collapse: collapse; }
+.form-table td { padding: 12px 0; vertical-align: middle; }
+.form-table td:first-child {
+    white-space: nowrap;
+    padding-right: 20px;
+    padding-top: 22px;
+    vertical-align: top;
+    font-size: 13px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+}
+.form-table td:last-child { width: 100%; }
 
 form label {
     display: block;
@@ -272,6 +288,21 @@ form label:has(input[type=checkbox]) { display: block; text-transform: none; fon
 .status-filter a { color: var(--muted); text-decoration: none; padding: 4px 10px; font-size: 14px; }
 .status-filter a:hover { text-decoration: none; color: var(--ink); }
 .status-filter a.active { background: var(--ink); color: #fff; }
+
+.notice-banner {
+    background: #fdf3e3;
+    border: 1px solid #e8c98a;
+    color: #7a5a1e;
+    padding: 10px 16px;
+    margin-bottom: 20px;
+}
+.notice-banner a { color: #7a5a1e; text-decoration: underline; }
+
+/* Status badges (e.g. voucher Active/Inactive/Expired) */
+.status-badge { display: inline-block; padding: 3px 10px; font-size: 12px; letter-spacing: 0.03em; }
+.status-badge.status-active, .status-badge.status-approved { background: var(--accent-soft); color: #8a4a26; }
+.status-badge.status-inactive, .status-badge.status-pending { background: var(--border); color: var(--muted); }
+.status-badge.status-expired, .status-badge.status-rejected { background: #f4d8d0; color: var(--danger); }
 
 /* ---------------------------------------------------------------------- */
 /* Tables                                                                   */
@@ -567,11 +598,7 @@ ul.timeline li span { color: var(--muted); }
 ul.timeline li .timeline-note { margin-top: 4px; font-size: 13px; color: var(--danger); }
 
 /* Revenue trend chart (hand-rolled SVG, no charting library) */
-svg.chart { display: block; max-width: 100%; height: auto; margin: 16px 0 24px; }
-svg.chart .chart-bar { fill: var(--accent); }
-svg.chart .chart-axis { stroke: var(--border); stroke-width: 1; }
-svg.chart .chart-label { font-family: 'Work Sans', sans-serif; font-size: 12px; fill: var(--muted); }
-svg.chart .chart-value { font-family: 'Work Sans', sans-serif; font-size: 11px; fill: var(--ink); font-weight: 500; }
+.chart-wrap { max-width: 900px; margin: 16px 0 24px; }
 
 /* Pager */
 .pager { margin-top: 16px; }

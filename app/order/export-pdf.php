@@ -2,7 +2,6 @@
 <?php auth('Admin'); ?>
 <?php
 
-// PDF export — same filter/query as export.php (CSV), different output format
 $status = get('status', '');
 $search = get('search', '');
 $date_from = get('date_from', '');

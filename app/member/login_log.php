@@ -2,7 +2,6 @@
 <?php auth('Admin'); ?>
 <?php
 
-// Login Log
 $search = get('search', '');
 $role = get('role', '');
 $sort = get('sort', 'login_time');

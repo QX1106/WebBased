@@ -2,7 +2,6 @@
 <?php auth('Admin'); ?>
 <?php
 
-// PDF export — same filter/query as export.php (CSV), different output format
 $search = get('search', '');
 
 $stm = $pdo->prepare("SELECT member_id, username, email, phone, address, role, status, created_at
