@@ -1,7 +1,9 @@
 <?php require '../_base.php'; ?>
 <?php
 
+// Already logged in? Send Admin and Super Admin to their own dashboards.
 if ($_user && $_user->role == 'Admin') redirect('/dashboard.php');
+if ($_user && $_user->role == 'Super Admin') redirect('/superadmin/dashboard.php');
 
 $_err = [];
 
@@ -13,7 +15,9 @@ if (is_post()) {
     if (!$password) $_err['password'] = 'Password is required';
 
     if (!$_err) {
-        $stm = $pdo->prepare("SELECT * FROM member WHERE username = ? AND role = 'Admin'");
+        // Shared by Admin and Super Admin — customer accounts (role =
+        // Member) never match here.
+        $stm = $pdo->prepare("SELECT * FROM member WHERE username = ? AND role IN ('Admin', 'Super Admin')");
         $stm->execute([$username]);
         $admin = $stm->fetch();
 
@@ -24,7 +28,8 @@ if (is_post()) {
         } else {
             session_regenerate_id(true);
             unset($admin->password);
-            login($admin, '/dashboard.php');
+            $redirect_url = $admin->role == 'Super Admin' ? '/superadmin/dashboard.php' : '/dashboard.php';
+            login($admin, $redirect_url);
         }
     }
 }
@@ -42,12 +47,12 @@ $eye_closed = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
 
 <form method="post" novalidate>
     <label for="username">Username</label>
-    <?= html_text('username') ?>
+    <?= html_text('username', "placeholder='Enter your username'") ?>
     <?= err('username') ?>
 
     <label for="password">Password</label>
     <div class="pw-field">
-        <?= html_password('password') ?>
+        <?= html_password('password', "placeholder='Enter your password'") ?>
         <button type="button" class="toggle-pw" data-target="password" tabindex="-1"><?= $eye_open ?></button>
     </div>
     <?= err('password') ?>
