@@ -181,7 +181,7 @@ require '../_head.php';
         <tr>
             <td>Price</td>
             <td>
-                <div style="display:flex; align-items:center; gap:6px;">
+                <div class="input-prefix">
                     <span>RM</span>
                     <?= html_number('price', 0.01, '', 0.01) ?>
                 </div>

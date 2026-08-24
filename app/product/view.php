@@ -49,8 +49,9 @@ require '../_head.php';
 
 <h1>Product Detail</h1>
 
+<div class="product-detail">
 <?php if ($slides): ?>
-<div id="slider" style="max-width:400px;">
+<div id="slider">
     <div id="slides" style="border:1px solid #ddd;">
         <?php foreach ($slides as $i => $slide): ?>
         <div class="slide" data-index="<?= $i ?>" style="<?= $i === 0 ? '' : 'display:none;' ?>">
@@ -87,24 +88,27 @@ require '../_head.php';
 <span class="no-photo">No Photo</span>
 <?php endif; ?>
 
-<table class="form-table" style="width:400px;">
-    <tr><td style="width:130px;">Name</td><td><?= h($product->name) ?></td></tr>
-    <tr><td>Category</td><td><?= h($product->category_name) ?></td></tr>
-    <tr><td>Price</td><td>RM <?= number_format($product->price, 2) ?></td></tr>
-    <tr><td>Stock Qty</td><td>
-        <?= $product->stock_qty ?>
-        <?php if ($product->stock_qty <= 10): ?>
-            <span style="color:#c0392b; font-weight:bold;">⚠ Low Stock</span>
-        <?php endif; ?>
-    </td></tr>
-    <tr><td>Description</td><td><?= nl2br(h($product->description)) ?></td></tr>
-</table>
+<div class="detail-info">
+    <table class="form-table">
+        <tr><td style="width:130px;">Name</td><td><?= h($product->name) ?></td></tr>
+        <tr><td>Category</td><td><?= h($product->category_name) ?></td></tr>
+        <tr><td>Price</td><td>RM <?= number_format($product->price, 2) ?></td></tr>
+        <tr><td>Stock Qty</td><td>
+            <?= $product->stock_qty ?>
+            <?php if ($product->stock_qty <= 10): ?>
+                <span style="color:#c0392b; font-weight:bold;">⚠ Low Stock</span>
+            <?php endif; ?>
+        </td></tr>
+        <tr><td>Description</td><td><?= nl2br(h($product->description)) ?></td></tr>
+    </table>
 
-<p style="width : 400px;">
-    <a href="/product/update.php?id=<?= $product->id ?>">Edit</a> |
-    <a href="/product/delete.php?id=<?= $product->id ?>" onclick="return confirm('Delete this product?')">Delete</a> |
-    <a href="/product/list.php">Back to List</a>
-</p>
+    <p>
+        <a href="/product/update.php?id=<?= $product->id ?>">Edit</a> |
+        <a href="/product/delete.php?id=<?= $product->id ?>" onclick="return confirm('Delete this product?')">Delete</a> |
+        <a href="/product/list.php">Back to List</a>
+    </p>
+</div>
+</div>
 
 <?php if (count($slides) > 1): ?>
 <script>
