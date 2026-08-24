@@ -2,8 +2,7 @@
 <?php auth('Admin'); ?>
 <?php
 
-// Low-In-Stock Alert: flag any product at or below this quantity.
-const LOW_STOCK_THRESHOLD = 10;
+// LOW_STOCK_THRESHOLD is defined in _base.php — shared with the sidebar alert badge.
 
 $fields = [
     'Name'     => 'p.name',
@@ -27,8 +26,7 @@ $categories = $pdo->query("SELECT id, name FROM category ORDER BY name")
 
 $page = get('page', 1);
 
-$low_stock_count = $pdo->query("SELECT COUNT(*) FROM product WHERE stock_qty <= " . LOW_STOCK_THRESHOLD)
-                        ->fetchColumn();
+$low_stock_count = low_stock_count();
 
 $sql = "SELECT p.*, c.name AS category_name
         FROM product p
@@ -58,8 +56,6 @@ require '../_head.php';
 </p>
 <?php endif; ?>
 
-<p><a href="/product/insert.php">+ Add New Product</a></p>
-
 <form method="get" class="filter-form">
     <?= html_search('name', "placeholder='Search product name'") ?>
     <?= html_select('category_id', $categories, 'All Categories') ?>
@@ -69,6 +65,7 @@ require '../_head.php';
 </form>
 
 <div class="toolbar">
+    <a href="/product/insert.php" class="btn-accent">+ Add New Product</a>
     <a href="/product/export-csv.php?name=<?= urlencode($name) ?>&category_id=<?= urlencode($category_id) ?>" class="btn-accent">Export CSV</a>
     <a href="/product/batch-insert.php" class="btn-accent">Batch Insert (CSV)</a>
 </div>

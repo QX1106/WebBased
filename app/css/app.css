@@ -158,6 +158,27 @@ input:focus, textarea:focus, select:focus {
     border-color: var(--ink);
 }
 
+/* Text prefix fused into an input's box, e.g. "RM" before a price field */
+.input-prefix {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid var(--border);
+    background: var(--panel);
+}
+.input-prefix:focus-within { border-color: var(--ink); }
+.input-prefix span {
+    display: flex;
+    align-items: center;
+    padding-left: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+}
+.input-prefix input {
+    border: none;
+    padding-left: 6px;
+}
+.input-prefix input:focus { border-color: transparent; }
+
 textarea { resize: vertical; min-height: 70px; }
 
 form section, form > button, form > p {
@@ -281,6 +302,11 @@ button.btn-accent::-moz-focus-inner { border: 0; padding: 0; }
 .photo-drop-clear:hover { background: none; border-color: transparent; color: #8f371f; }
 
 form small { display: block; margin-top: 8px; color: var(--muted); font-size: 12px; }
+
+/* Small muted helper text under a field (used across product/voucher forms) —
+   was previously an unstyled <p>, which meant browser-default margins made
+   these forms look much taller/blanker than intended. */
+.hint { font-size: 12px; color: var(--muted); margin: 6px 0 0; }
 form input[type=checkbox] { margin-top: 8px; }
 form label:has(input[type=checkbox]) { display: block; text-transform: none; font-size: 13px; color: var(--ink); letter-spacing: normal; margin: 8px 0 0; }
 
@@ -328,6 +354,12 @@ table.table td a:hover, table.detail td a:hover { color: #a86c45; }
 table.detail { border-collapse: collapse; background: var(--panel); font-size: 14px; }
 table.detail th, table.detail td { border-bottom: 1px solid var(--border); padding: 12px 16px; text-align: left; }
 table.detail th { color: var(--muted); font-weight: 500; width: 160px; }
+
+/* Product detail page: photo/video slider beside the info instead of
+   stacking both at a fixed 400px, which left the rest of the page blank. */
+.product-detail { display: flex; gap: 40px; align-items: flex-start; flex-wrap: wrap; }
+.product-detail #slider { width: 400px; flex-shrink: 0; }
+.product-detail .detail-info { flex: 1 1 320px; max-width: 480px; }
 
 /* ---------------------------------------------------------------------- */
 /* Admin layout (left sidebar) — only used when logged in as Admin         */
@@ -415,6 +447,9 @@ body.sidebar-hidden .admin-layout main { margin-left: 0; }
 
 .sidebar nav a:hover { background: var(--bg); text-decoration: none; }
 .sidebar nav a.active { background: var(--bg); border-left-color: var(--ink); font-weight: 500; }
+
+/* Low-stock warning next to a sidebar nav item */
+.nav-alert { color: #c0392b; font-weight: bold; margin-left: 4px; }
 
 .avatar {
     display: inline-block;

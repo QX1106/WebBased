@@ -22,6 +22,16 @@ $pdo = new PDO('mysql:dbname=stationary_db', 'root', '', [
 // shipped if more than  7 days, auto-complete
 const AUTO_COMPLETE_DAYS = 7;
 
+// Low-In-Stock Alert: flag any product at or below this quantity.
+const LOW_STOCK_THRESHOLD = 10;
+
+function low_stock_count() {
+    global $pdo;
+    $stm = $pdo->prepare("SELECT COUNT(*) FROM product WHERE stock_qty <= ?");
+    $stm->execute([LOW_STOCK_THRESHOLD]);
+    return $stm->fetchColumn();
+}
+
 function auto_complete_shipped_orders() {
     global $pdo;
 
