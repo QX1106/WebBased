@@ -4,20 +4,38 @@
 
 $id = post('id');
 $action = post('action');
+$gallery_id = post('gallery_id');
+$photo_idx = post('photo_idx', 0);
+$back_url = '/product/update.php?id=' . $id . '&photo_idx=' . $photo_idx;
 
-$stm = $pdo->prepare("SELECT * FROM product WHERE id = ?");
-$stm->execute([$id]);
-$product = $stm->fetch();
+if ($gallery_id) {
+    $stm = $pdo->prepare("SELECT * FROM product_photo WHERE id = ? AND product_id = ?");
+    $stm->execute([$gallery_id, $id]);
+    $gallery_photo = $stm->fetch();
 
-if (!$product || !$product->photo) {
-    temp('info', 'Product or photo not found.');
-    redirect('/product/update.php?id=' . $id);
+    if (!$gallery_photo) {
+        temp('info', 'Photo not found.');
+        redirect($back_url);
+    }
+
+    $photo_filename = $gallery_photo->photo;
+} else {
+    $stm = $pdo->prepare("SELECT * FROM product WHERE id = ?");
+    $stm->execute([$id]);
+    $product = $stm->fetch();
+
+    if (!$product || !$product->photo) {
+        temp('info', 'Product or photo not found.');
+        redirect($back_url);
+    }
+
+    $photo_filename = $product->photo;
 }
 
-$path = root("photos/{$product->photo}");
+$path = root("photos/$photo_filename");
 if (!file_exists($path)) {
     temp('info', 'Photo file is missing.');
-    redirect('/product/update.php?id=' . $id);
+    redirect($back_url);
 }
 
 require_once root('lib/SimpleImage.php');
@@ -39,13 +57,15 @@ switch ($action) {
         break;
     default:
         temp('info', 'Unknown action.');
-        redirect('/product/update.php?id=' . $id);
+        redirect($back_url);
 }
 
 $img->toFile($path, 'image/jpeg');
 
-// Keep the SESSION-held filename in sync for the edit form (Practical 6 pattern)
-$_SESSION['edit_photo'] = $product->photo;
+if (!$gallery_id) {
+    
+    $_SESSION['edit_photo'] = $product->photo;
+}
 
 temp('info', 'Photo updated.');
-redirect('/product/update.php?id=' . $id);
+redirect($back_url);

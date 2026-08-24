@@ -60,6 +60,18 @@ $gallery_photos = $pdo->prepare("SELECT * FROM product_photo WHERE product_id = 
 $gallery_photos->execute([$id]);
 $gallery_photos = $gallery_photos->fetchAll();
 
+// Photo editor: steps through the main photo (always slot 0, even if empty
+// so the upload box stays reachable) followed by every gallery photo.
+$all_photos = [(object) ['type' => 'main', 'gallery_id' => null, 'photo' => $photo]];
+foreach ($gallery_photos as $gp) {
+    $all_photos[] = (object) ['type' => 'gallery', 'gallery_id' => $gp->id, 'photo' => $gp->photo];
+}
+$photo_count = count($all_photos);
+
+$photo_idx = (int) get('photo_idx', 0);
+$photo_idx = max(0, min($photo_idx, $photo_count - 1));
+$current_photo = $all_photos[$photo_idx];
+
 $categories = $pdo->query("SELECT id, name FROM category ORDER BY name")
                    ->fetchAll(PDO::FETCH_KEY_PAIR);
 
@@ -183,24 +195,41 @@ require '../_head.php';
             <td style="vertical-align:top;">Photo</td>
             <td>
                 <?= err('photo') ?>
-                <div class="photo-drop" tabindex="0" role="button" aria-label="Upload product photo">
-                    <img src="<?= $photo ? '/photos/' . h($photo) : '' ?>" <?= $photo ? '' : 'style="display:none"' ?>>
-                    <div class="photo-drop-hint" <?= $photo ? 'style="display:none"' : '' ?>>Drag &amp; drop a photo here, or click to browse<br><small>Max 3MB</small></div>
-                    <?= html_file('photo', 'image/*', "style='display:none'") ?>
-                    <button type="button" class="photo-drop-clear">✕ Clear selection</button>
-                </div>
-                <p class="hint">Leave empty to keep the current photo.</p>
 
-                <?php if ($photo): ?>
-                <div style="display:grid; grid-template-columns:repeat(2, max-content); gap:6px; margin-top:6px;">
+                <?php if ($current_photo->type == 'main'): ?>
+                    <div class="photo-drop" tabindex="0" role="button" aria-label="Upload product photo">
+                        <img src="<?= $photo ? '/photos/' . h($photo) : '' ?>" <?= $photo ? '' : 'style="display:none"' ?>>
+                        <div class="photo-drop-hint" <?= $photo ? 'style="display:none"' : '' ?>>Drag &amp; drop a photo here, or click to browse<br><small>Max 3MB</small></div>
+                        <?= html_file('photo', 'image/*', "style='display:none'") ?>
+                        <button type="button" class="photo-drop-clear">✕ Clear selection</button>
+                    </div>
+                    <p class="hint">Leave empty to keep the current photo.</p>
+                <?php else: ?>
+                    <img src="/photos/<?= h($current_photo->photo) ?>" width="160" height="160" style="object-fit:cover; border:1px solid var(--border); display:block;">
+                    <p class="hint"><a href="/product/photo-delete.php?id=<?= $current_photo->gallery_id ?>&product_id=<?= $id ?>"
+                          onclick="return confirm('Remove this photo?')">Remove this photo</a></p>
+                <?php endif; ?>
+
+                <?php if ($current_photo->photo): ?>
+                <div style="display:grid; grid-template-columns:repeat(2, max-content); gap:6px; margin-top:8px;">
                     <button type="button" class="btn-outline" style="padding:4px 10px; font-size:0.85em;"
-                            onclick="submitPhotoTransform('rotate_left')">⟲ Rotate Left</button>
+                            onclick="submitPhotoTransform('rotate_left', <?= $current_photo->gallery_id ?? 'null' ?>)">⟲ Rotate Left</button>
                     <button type="button" class="btn-outline" style="padding:4px 10px; font-size:0.85em;"
-                            onclick="submitPhotoTransform('rotate_right')">⟳ Rotate Right</button>
+                            onclick="submitPhotoTransform('rotate_right', <?= $current_photo->gallery_id ?? 'null' ?>)">⟳ Rotate Right</button>
                     <button type="button" class="btn-outline" style="padding:4px 10px; font-size:0.85em;"
-                            onclick="submitPhotoTransform('flip_horizontal')">⇋ Flip Horizontal</button>
+                            onclick="submitPhotoTransform('flip_horizontal', <?= $current_photo->gallery_id ?? 'null' ?>)">⇋ Flip Horizontal</button>
                     <button type="button" class="btn-outline" style="padding:4px 10px; font-size:0.85em;"
-                            onclick="submitPhotoTransform('flip_vertical')">⇅ Flip Vertical</button>
+                            onclick="submitPhotoTransform('flip_vertical', <?= $current_photo->gallery_id ?? 'null' ?>)">⇅ Flip Vertical</button>
+                </div>
+                <?php endif; ?>
+
+                <?php if ($photo_count > 1): ?>
+                <div style="margin-top:10px; display:flex; align-items:center; gap:10px;">
+                    <a class="btn-outline" style="padding:4px 10px; font-size:0.85em; visibility:<?= $photo_idx > 0 ? 'visible' : 'hidden' ?>;"
+                       href="/product/update.php?id=<?= $id ?>&photo_idx=<?= $photo_idx - 1 ?>">‹ Previous</a>
+                    <span class="hint" style="margin:0;">Photo <?= $photo_idx + 1 ?> of <?= $photo_count ?> (<?= $current_photo->type == 'main' ? 'main' : 'gallery' ?>)</span>
+                    <a class="btn-outline" style="padding:4px 10px; font-size:0.85em; visibility:<?= $photo_idx < $photo_count - 1 ? 'visible' : 'hidden' ?>;"
+                       href="/product/update.php?id=<?= $id ?>&photo_idx=<?= $photo_idx + 1 ?>">Next ›</a>
                 </div>
                 <?php endif; ?>
             </td>
@@ -208,17 +237,6 @@ require '../_head.php';
         <tr>
             <td style="vertical-align:top; padding-top:16px;">Additional Photos</td>
             <td style="padding-top:16px;">
-                <?php if ($gallery_photos): ?>
-                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
-                    <?php foreach ($gallery_photos as $gp): ?>
-                    <div style="text-align:center;">
-                        <img src="/photos/<?= h($gp->photo) ?>" width="80" height="60"><br>
-                        <a href="/product/photo-delete.php?id=<?= $gp->id ?>&product_id=<?= $id ?>"
-                           onclick="return confirm('Remove this photo?')">Remove</a>
-                    </div>
-                    <?php endforeach; ?>
-                </div>
-                <?php endif; ?>
                 <input type="file" id="gallery" name="gallery[]" accept="image/*" multiple>
                 <p class="hint">Add more gallery photos (optional, max 3MB each).</p>
             </td>
@@ -234,7 +252,7 @@ require '../_head.php';
         <tr>
             <td>Price</td>
             <td>
-                <div style="display:flex; align-items:center; gap:6px;">
+                <div class="input-prefix">
                     <span>RM</span>
                     <?= html_number('price', 0.01, '', 0.01) ?>
                 </div>
@@ -334,12 +352,15 @@ require '../_head.php';
 
 <form method="post" action="/product/photo-transform.php" id="photo-transform-form" style="display:none;">
     <input type="hidden" name="id" value="<?= $id ?>">
+    <input type="hidden" name="photo_idx" value="<?= $photo_idx ?>">
+    <input type="hidden" name="gallery_id" id="photo-transform-gallery-id" value="">
     <input type="hidden" name="action" id="photo-transform-action" value="">
 </form>
 
 <script>
-    function submitPhotoTransform(action) {
+    function submitPhotoTransform(action, galleryId) {
         document.getElementById('photo-transform-action').value = action;
+        document.getElementById('photo-transform-gallery-id').value = galleryId || '';
         document.getElementById('photo-transform-form').submit();
     }
 </script>
