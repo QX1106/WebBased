@@ -49,9 +49,11 @@ $_nav_categories = $pdo->query("SELECT id, name FROM category ORDER BY name")->f
             <a href="/" class="brand">Stationary Online Store</a>
             <nav>
                 <a href="/dashboard.php" class="<?= $_path == '/dashboard.php' ? 'active' : '' ?>">Dashboard</a>
+                <a href="/report.php" class="<?= $_path == '/report.php' ? 'active' : '' ?>">Report</a>
                 <a href="/member/list.php" class="<?= str_starts_with($_path, '/member') ? 'active' : '' ?>">Members</a>
                 <a href="/order/list.php" class="<?= str_starts_with($_path, '/order') ? 'active' : '' ?>">Orders</a>
                 <a href="/product/list.php" class="<?= str_starts_with($_path, '/product') ? 'active' : '' ?>">Products</a>
+                <a href="/voucher/list.php" class="<?= str_starts_with($_path, '/voucher') ? 'active' : '' ?>">Vouchers</a>
                 <a href="/admin/profile.php" class="<?= $_path == '/admin/profile.php' || $_path == '/admin/edit.php' || $_path == '/admin/password.php' ? 'active' : '' ?>">My Profile</a>
             </nav>
             <div class="sidebar-foot">

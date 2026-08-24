@@ -113,6 +113,22 @@ footer {
 .ok { color: #3a7d44; font-size: 0.85em; }
 
 form { max-width: 480px; }
+form:has(.form-table) { max-width: 640px; }
+
+.form-table { width: 100%; border-collapse: collapse; }
+.form-table td { padding: 12px 0; vertical-align: middle; }
+.form-table td:first-child {
+    white-space: nowrap;
+    padding-right: 20px;
+    padding-top: 22px;
+    vertical-align: top;
+    font-size: 13px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+}
+.form-table td:last-child { width: 100%; }
 
 form label {
     display: block;
@@ -178,7 +194,9 @@ form.search-bar button, form.search-bar a { margin-top: 0; }
 
 /* Secondary actions (Export CSV, View Login Log...) as outlined buttons,
    set apart from the primary black Search button */
-.toolbar { display: flex; gap: 10px; margin-top: 16px; }
+.toolbar { display: flex; align-items: flex-start; gap: 10px; margin-top: 16px; }
+
+.receipt-actions { display: flex; align-items: center; gap: 10px; }
 
 .btn-outline {
     display: inline-block;
@@ -194,15 +212,45 @@ form.search-bar button, form.search-bar a { margin-top: 0; }
 
 .btn-accent {
     display: inline-block;
+    box-sizing: border-box;
     padding: 10px 20px;
     border: 1px solid var(--accent);
     background: var(--accent-soft);
     color: var(--ink);
     text-decoration: none;
+    font-family: inherit;
     font-size: 14px;
+    line-height: 1.4;
+    vertical-align: middle;
     transition: background .15s;
 }
 .btn-accent:hover { background: #f0d0bd; text-decoration: none; }
+.btn-accent:focus { outline: none; }
+/* export & login log match */
+button.btn-accent::-moz-focus-inner { border: 0; padding: 0; }
+
+/* Export dropdown */
+.export-dropdown { position: relative; display: inline-block; }
+.export-dropdown .dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    min-width: 170px;
+    z-index: 20;
+}
+.export-dropdown.open .dropdown-menu { display: block; }
+.export-dropdown .dropdown-menu a {
+    display: block;
+    padding: 10px 16px;
+    font-size: 14px;
+    color: var(--ink);
+    text-decoration: none;
+}
+.export-dropdown .dropdown-menu a:hover { background: var(--bg); text-decoration: none; }
 
 /* drag and drop */
 .photo-drop {
@@ -240,6 +288,21 @@ form label:has(input[type=checkbox]) { display: block; text-transform: none; fon
 .status-filter a { color: var(--muted); text-decoration: none; padding: 4px 10px; font-size: 14px; }
 .status-filter a:hover { text-decoration: none; color: var(--ink); }
 .status-filter a.active { background: var(--ink); color: #fff; }
+
+.notice-banner {
+    background: #fdf3e3;
+    border: 1px solid #e8c98a;
+    color: #7a5a1e;
+    padding: 10px 16px;
+    margin-bottom: 20px;
+}
+.notice-banner a { color: #7a5a1e; text-decoration: underline; }
+
+/* Status badges (e.g. voucher Active/Inactive/Expired) */
+.status-badge { display: inline-block; padding: 3px 10px; font-size: 12px; letter-spacing: 0.03em; }
+.status-badge.status-active, .status-badge.status-approved { background: var(--accent-soft); color: #8a4a26; }
+.status-badge.status-inactive, .status-badge.status-pending { background: var(--border); color: var(--muted); }
+.status-badge.status-expired, .status-badge.status-rejected { background: #f4d8d0; color: var(--danger); }
 
 /* ---------------------------------------------------------------------- */
 /* Tables                                                                   */
@@ -535,11 +598,7 @@ ul.timeline li span { color: var(--muted); }
 ul.timeline li .timeline-note { margin-top: 4px; font-size: 13px; color: var(--danger); }
 
 /* Revenue trend chart (hand-rolled SVG, no charting library) */
-svg.chart { display: block; max-width: 100%; height: auto; margin: 16px 0 24px; }
-svg.chart .chart-bar { fill: var(--accent); }
-svg.chart .chart-axis { stroke: var(--border); stroke-width: 1; }
-svg.chart .chart-label { font-family: 'Work Sans', sans-serif; font-size: 12px; fill: var(--muted); }
-svg.chart .chart-value { font-family: 'Work Sans', sans-serif; font-size: 11px; fill: var(--ink); font-weight: 500; }
+.chart-wrap { max-width: 900px; margin: 16px 0 24px; }
 
 /* Pager */
 .pager { margin-top: 16px; }
@@ -567,39 +626,10 @@ svg.chart .chart-value { font-family: 'Work Sans', sans-serif; font-size: 11px; 
 .toggle-pw svg { display: block; width: 18px; height: 18px; }
 
 /* ---------------------------------------------------------------------- */
-/* Print (order receipt) — "Download Receipt" opens the browser print       */
-/* dialog; the user saves it as a PDF. Hidden on screen, only shown when   */
-/* printing, styled like an actual receipt instead of reusing admin tables.*/
+/* Print fallback — receipts are downloaded as real PDFs now (see          */
+/* order/receipt-pdf.php), but a stray Ctrl+P should still hide admin      */
+/* chrome rather than print it.                                            */
 /* ---------------------------------------------------------------------- */
-.receipt { display: none; }
-
-.receipt-store { text-align: center; padding-bottom: 14px; }
-.receipt-store-name { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 600; }
-.receipt-store-sub { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-top: 4px; }
-
-.receipt-divider { border-top: 1px dashed var(--border); margin: 14px 0; }
-
-.receipt-row { display: flex; justify-content: space-between; gap: 16px; font-size: 13px; padding: 3px 0; }
-.receipt-row span:first-child { color: var(--muted); }
-.receipt-row span:last-child { text-align: right; }
-
-.receipt-items { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
-.receipt-items th {
-    text-align: left;
-    border-bottom: 1px solid var(--ink);
-    padding: 4px 0;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--muted);
-}
-.receipt-items th:not(:first-child), .receipt-items td:not(:first-child) { text-align: right; }
-.receipt-items td { padding: 6px 0; border-bottom: 1px solid var(--border); }
-
-.receipt-total { display: flex; justify-content: space-between; font-size: 17px; font-weight: 600; padding-top: 2px; }
-
-.receipt-footer { text-align: center; font-size: 12px; color: var(--muted); margin-top: 28px; }
-
 @media print {
     .sidebar, .admin-topbar, header nav, #flash, footer, .no-print {
         display: none !important;
@@ -607,10 +637,5 @@ svg.chart .chart-value { font-family: 'Work Sans', sans-serif; font-size: 11px; 
     body.sidebar-hidden .admin-layout main,
     .admin-layout main {
         margin-left: 0 !important;
-    }
-    .receipt {
-        display: block;
-        max-width: 480px;
-        margin: 0 auto;
     }
 }
