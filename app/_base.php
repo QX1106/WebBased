@@ -321,8 +321,12 @@ function is_unique($table, $field, $value, $except_id = null, $id_field = null) 
 
 // Voucher
 function voucher_effective_status($voucher) {
-    if ($voucher->status == 'Active' && $voucher->valid_until < date('Y-m-d')) {
+    $today = date('Y-m-d');
+    if ($voucher->status == 'Active' && $voucher->valid_until < $today) {
         return 'Expired';
+    }
+    if ($voucher->status == 'Active' && $voucher->valid_from > $today) {
+        return 'Scheduled';
     }
     return $voucher->status;
 }

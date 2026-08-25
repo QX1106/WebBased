@@ -303,6 +303,7 @@ form label:has(input[type=checkbox]) { display: block; text-transform: none; fon
 .status-badge.status-active, .status-badge.status-approved { background: var(--accent-soft); color: #8a4a26; }
 .status-badge.status-inactive, .status-badge.status-pending { background: var(--border); color: var(--muted); }
 .status-badge.status-expired, .status-badge.status-rejected { background: #f4d8d0; color: var(--danger); }
+.status-badge.status-scheduled { background: #dfe6ea; color: #3f5b6b; }
 
 /* ---------------------------------------------------------------------- */
 /* Tables                                                                   */
