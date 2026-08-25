@@ -163,13 +163,16 @@ function get_mail() {
     return $m;
 }
 
-function send_email($to, $subject, $body) {
+function send_email($to, $subject, $body, $attachments = []) {
     try {
         $mail = get_mail();
         $mail->addAddress($to);
         $mail->isHTML(true);
         $mail->Subject = $subject;
         $mail->Body = $body;
+        foreach ($attachments as $att) {
+            $mail->addStringAttachment($att['content'], $att['name']);
+        }
         $mail->send();
         return true;
     } catch (PHPMailerException $e) {
@@ -226,6 +229,11 @@ function html_number($key, $min = '', $max = '', $step = '', $attr = '') {
 
 function html_file($key, $accept = '', $attr = '') {
     return "<input type='file' id='$key' name='$key' accept='$accept' $attr>";
+}
+
+function html_date($key, $attr = '') {
+    $value = h($GLOBALS[$key] ?? '');
+    return "<input type='date' id='$key' name='$key' value='$value' $attr>";
 }
 
 function html_hidden($key, $value) {
@@ -306,6 +314,14 @@ function is_unique($table, $field, $value, $except_id = null, $id_field = null) 
     return $stm->fetchColumn() == 0;
 }
 
+// Voucher
+function voucher_effective_status($voucher) {
+    if ($voucher->status == 'Active' && $voucher->valid_until < date('Y-m-d')) {
+        return 'Expired';
+    }
+    return $voucher->status;
+}
+
 function is_exists($table, $field, $value) {
     global $pdo;
     $stm = $pdo->prepare("SELECT COUNT(*) FROM `$table` WHERE `$field` = ?");
@@ -357,6 +373,110 @@ function save_photo($f, $folder, $width = 200, $height = 200) {
         ->thumbnail($width, $height)
         ->toFile($path, 'image/jpeg');
     return $photo;
+}
+
+// =========================================================
+// PDF TABLE REPORT
+// =========================================================
+function export_table_pdf($title, $headers, $rows, $filename) {
+    require_once root('lib/TCPDF/tcpdf.php');
+
+    $pdf = new TCPDF('L', PDF_UNIT, 'A4', true, 'UTF-8', false);
+    $pdf->SetCreator('Stationary Online Store');
+    $pdf->SetTitle($title);
+    $pdf->setPrintHeader(false);
+    $pdf->setPrintFooter(false);
+    $pdf->SetMargins(15, 15, 15);
+    $pdf->AddPage();
+    $pdf->SetFont('helvetica', '', 9);
+
+    $html = '<style>
+        h1 { font-size: 16px; margin-bottom: 2px; }
+        .sub { font-size: 9px; color: #8a8175; margin-bottom: 12px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; font-size: 8px; color: #8a8175; border-bottom: 1px solid #2b2622; padding: 4px; }
+        td { font-size: 9px; padding: 4px; border-bottom: 1px solid #e4ddd0; }
+    </style>
+    <h1>Stationary Online Store</h1>
+    <div class="sub">' . h($title) . ' &mdash; Generated ' . date('Y-m-d H:i') . ' &mdash; ' . count($rows) . ' record(s)</div>
+    <table>
+        <tr>';
+    foreach ($headers as $head) {
+        $html .= '<th>' . h($head) . '</th>';
+    }
+    $html .= '</tr>';
+    foreach ($rows as $row) {
+        $html .= '<tr>';
+        foreach ($row as $cell) {
+            $html .= '<td>' . h($cell) . '</td>';
+        }
+        $html .= '</tr>';
+    }
+    $html .= '</table>';
+
+    $pdf->writeHTML($html, true, false, true, false, '');
+    $pdf->Output($filename, 'D');
+}
+
+// PDF
+function build_order_receipt_pdf($order, $items) {
+    require_once root('lib/TCPDF/tcpdf.php');
+
+    $items_html = '';
+    foreach ($items as $it) {
+        $items_html .= '<tr>
+            <td>' . h($it->product_name) . '</td>
+            <td align="center">' . h($it->quantity) . '</td>
+            <td align="right">RM ' . number_format($it->unit_price, 2) . '</td>
+            <td align="right">RM ' . number_format($it->unit_price * $it->quantity, 2) . '</td>
+        </tr>';
+    }
+
+    $html = '
+    <style>
+        h1 { font-size: 20px; text-align: center; margin-bottom: 2px; }
+        .sub { font-size: 10px; text-align: center; color: #8a8175; letter-spacing: 2px; margin-bottom: 16px; }
+        .row { font-size: 11px; margin-bottom: 4px; }
+        .label { color: #8a8175; }
+        table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        th { text-align: left; font-size: 9px; color: #8a8175; border-bottom: 1px solid #2b2622; padding-bottom: 4px; }
+        td { font-size: 11px; padding: 6px 0; border-bottom: 1px solid #e4ddd0; }
+        .total { font-size: 14px; font-weight: bold; text-align: right; margin-top: 8px; }
+        .footer { font-size: 10px; text-align: center; color: #8a8175; margin-top: 24px; }
+    </style>
+    <h1>Stationary Online Store</h1>
+    <div class="sub">ORDER RECEIPT</div>
+
+    <div class="row"><span class="label">Order #</span> ' . h($order->order_id) . '</div>
+    <div class="row"><span class="label">Order Date</span> ' . h($order->order_date) . '</div>
+    <div class="row"><span class="label">Status</span> ' . h($order->order_status) . '</div>
+    <br>
+    <div class="row"><span class="label">Customer</span> ' . h($order->username) . '</div>
+    <div class="row"><span class="label">Email</span> ' . h($order->email) . '</div>
+    <div class="row"><span class="label">Phone</span> ' . h($order->phone) . '</div>
+    <div class="row"><span class="label">Address</span> ' . h($order->address) . '</div>
+
+    <table>
+        <tr><th>Item</th><th align="center">Qty</th><th align="right">Price</th><th align="right">Subtotal</th></tr>
+        ' . $items_html . '
+    </table>
+
+    <div class="total">Total: RM ' . number_format($order->total_amount, 2) . '</div>
+
+    <div class="footer">Thank you for shopping with us!</div>
+    ';
+
+    $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, 'A4', true, 'UTF-8', false);
+    $pdf->SetCreator('Stationary Online Store');
+    $pdf->SetAuthor('Stationary Online Store');
+    $pdf->SetTitle('Receipt - Order #' . $order->order_id);
+    $pdf->setPrintHeader(false);
+    $pdf->setPrintFooter(false);
+    $pdf->SetMargins(20, 20, 20);
+    $pdf->AddPage();
+    $pdf->SetFont('helvetica', '', 11);
+    $pdf->writeHTML($html, true, false, true, false, '');
+    return $pdf;
 }
 
 // =========================================================

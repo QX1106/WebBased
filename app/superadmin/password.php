@@ -1,22 +1,23 @@
 <?php require '../_base.php'; ?>
+<?php auth('Super Admin'); ?>
 <?php
-
-$token = req('token');
-
-$stm = $pdo->prepare("SELECT * FROM member WHERE reset_token = ? AND reset_expires > NOW()");
-$stm->execute([$token]);
-$account = $stm->fetch();
-
-if (!$account) {
-    temp('info', 'This reset link is invalid or has expired. Please request a new one.');
-    redirect('/user/login.php');
-}
 
 $_err = [];
 
 if (is_post()) {
+    $old_password = post('old_password');
     $new_password = post('new_password');
     $confirm_password = post('confirm_password');
+
+    $stm = $pdo->prepare("SELECT password FROM member WHERE id = ?");
+    $stm->execute([$_user->id]);
+    $current_hash = $stm->fetchColumn();
+
+    if (!$old_password) {
+        $_err['old_password'] = 'Current password is required';
+    } elseif (!password_verify($old_password, $current_hash)) {
+        $_err['old_password'] = 'Current password is incorrect';
+    }
 
     if (!$new_password) {
         $_err['new_password'] = 'New password is required';
@@ -29,15 +30,15 @@ if (is_post()) {
     }
 
     if (!$_err) {
-        $pdo->prepare("UPDATE member SET password = ?, reset_token = NULL, reset_expires = NULL, updated_at = NOW() WHERE member_id = ?")
-            ->execute([password_hash($new_password, PASSWORD_DEFAULT), $account->member_id]);
+        $pdo->prepare("UPDATE member SET password = ?, updated_at = NOW() WHERE id = ?")
+            ->execute([password_hash($new_password, PASSWORD_DEFAULT), $_user->id]);
 
-        temp('info', 'Password reset successful. Please login with your new password.');
-        redirect(in_array($account->role, ['Admin', 'Super Admin']) ? '/admin/login.php' : '/user/login.php');
+        temp('info', 'Password changed successfully.');
+        redirect('/superadmin/profile.php');
     }
 }
 
-$_title = 'Reset Password';
+$_title = 'Change Password';
 require '../_head.php';
 ?>
 
@@ -46,11 +47,15 @@ $eye_open = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-w
 $eye_closed = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l18 18"/><path d="M10.6 10.6a3 3 0 0 0 4.2 4.2"/><path d="M9.9 5.1A11 11 0 0 1 12 5c7 0 11 7 11 7a13.4 13.4 0 0 1-3.1 3.9M6.6 6.6C3.9 8.3 2 12 2 12s4 7 11 7c1.4 0 2.6-.2 3.7-.6"/></svg>';
 ?>
 
-<h1>Reset Password</h1>
-<p>Resetting password for <strong><?= h($account->username) ?></strong>.</p>
+<h1>Change Password</h1>
 
 <form method="post" novalidate>
-    <?= html_hidden('token', $token) ?>
+    <label for="old_password">Current Password</label>
+    <div class="pw-field">
+        <?= html_password('old_password', "placeholder='Enter your current password'") ?>
+        <button type="button" class="toggle-pw" data-target="old_password" tabindex="-1"><?= $eye_open ?></button>
+    </div>
+    <?= err('old_password') ?>
 
     <label for="new_password">New Password</label>
     <div class="pw-field">
@@ -66,7 +71,8 @@ $eye_closed = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
     </div>
     <?= err('confirm_password') ?>
 
-    <button>Reset Password</button>
+    <button>Change Password</button>
+    <a href="/superadmin/profile.php">Cancel</a>
 </form>
 
 <script>

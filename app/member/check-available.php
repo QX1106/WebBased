@@ -1,7 +1,7 @@
 <?php require '../_base.php'; ?>
 <?php
 
-// AJAX endpoint: live username/email availability check for register.php
+// live username/email availability check 
 header('Content-Type: application/json');
 
 $field = get('field');

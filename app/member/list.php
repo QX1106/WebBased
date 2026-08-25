@@ -18,8 +18,9 @@ $fields = [
 if (!in_array($sort, $fields)) $sort = 'member_id';
 if (!in_array($dir, ['asc', 'desc'])) $dir = 'asc';
 
-$query = "SELECT * FROM member WHERE username LIKE ? OR email LIKE ? ORDER BY $sort $dir";
-$params = ["%$search%", "%$search%"];
+// customers account only
+$query = "SELECT * FROM member WHERE role = 'Member' AND (username LIKE ? OR email LIKE ? OR phone LIKE ?) ORDER BY $sort $dir";
+$params = ["%$search%", "%$search%", "%$search%"];
 
 $page = get('page', 1);
 $pager = new SimplePager($pdo, $query, $params, 10, $page);
@@ -30,13 +31,19 @@ $pager = new SimplePager($pdo, $query, $params, 10, $page);
 <h1>Member Maintenance</h1>
 
 <form method="get" class="search-bar">
-    <?= html_search('search', "placeholder='Search username or email'") ?>
+    <?= html_search('search', "placeholder='Search username, email, or phone'") ?>
     <button type="submit">Search</button>
     <a href="list.php" class="btn-outline">Reset</a>
 </form>
 
 <div class="toolbar">
-    <a href="export.php?search=<?= urlencode($search) ?>" class="btn-accent">Export CSV</a>
+    <div class="export-dropdown">
+        <button type="button" class="btn-accent" data-toggle-dropdown>Export ▾</button>
+        <div class="dropdown-menu">
+            <a href="export.php?search=<?= urlencode($search) ?>">Export as CSV</a>
+            <a href="export-pdf.php?search=<?= urlencode($search) ?>">Export as PDF</a>
+        </div>
+    </div>
     <a href="login_log.php" class="btn-accent">View Login Log</a>
 </div>
 
