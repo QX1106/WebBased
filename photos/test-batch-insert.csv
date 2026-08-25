@@ -1,0 +1,6 @@
+Name,Category,Price,Stock Qty,Description,Video URL
+Highlighter Pack,Pen & Pencil,6.90,150,Set of 5 assorted colors,
+A4 Copy Paper (500 sheets),Paper,15.50,80,Standard 80gsm A4 paper,
+Ring Binder File,File & Folder,4.20,60,2-inch capacity ring binder,https://youtu.be/dQw4w9WgXcQ
+Broken Price Item,Paper,notanumber,50,This should get skipped for bad price,
+Unknown Category Item,Nonexistent Category,9.99,20,This should get skipped for bad category,

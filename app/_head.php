@@ -81,15 +81,6 @@ $_nav_categories = $pdo->query("SELECT id, name FROM category ORDER BY name")->f
     <nav>
         <a href="/">Stationary Online Store</a>
 
-        <a href="/product/list.php" class="has-dropdown">
-            Products
-            <ul class="dropdown">
-                <?php foreach ($_nav_categories as $_cat): ?>
-                <li><a href="/product/list.php?category_id=<?= $_cat->id ?>"><?= h($_cat->name) ?></a></li>
-                <?php endforeach; ?>
-            </ul>
-        </a>
-
         <?php if ($_user): ?>
             <?php if ($_user->role == 'Member'): ?>
                 <a href="/cart/index.php">Cart</a>
