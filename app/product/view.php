@@ -43,6 +43,58 @@ foreach ($all_photos as $ph) {
     $slides[] = ['type' => 'image', 'src' => "/photos/$ph"];
 }
 
+
+$cost_history_stm = $pdo->prepare("SELECT cost_price, effective_from FROM product_cost_history
+                                    WHERE product_id = ? ORDER BY effective_from ASC, id ASC");
+$cost_history_stm->execute([$id]);
+$cost_history = $cost_history_stm->fetchAll();
+
+function cost_price_on($cost_history, $date, $fallback) {
+    $applicable = $fallback;
+    foreach ($cost_history as $h) {
+        if ($h->effective_from > $date) {
+            break;
+        }
+        $applicable = $h->cost_price;
+    }
+    return (float) $applicable;
+}
+
+$sales_stm = $pdo->prepare("SELECT oi.quantity, oi.unit_price, o.order_date
+                             FROM order_item oi
+                             JOIN orders o ON o.order_id = oi.order_id
+                             WHERE oi.product_id = ? AND o.order_status = 'Completed'
+                             ORDER BY o.order_date");
+$sales_stm->execute([$id]);
+$sales_rows = $sales_stm->fetchAll();
+$has_sales = count($sales_rows) > 0;
+
+$months = [];
+for ($i = 5; $i >= 0; $i--) {
+    $months[date('Y-m', strtotime("-$i months"))] = ['sell' => 0.0, 'cost' => 0.0];
+}
+
+foreach ($sales_rows as $row) {
+    $order_date = date('Y-m-d', strtotime($row->order_date));
+    $ym = substr($order_date, 0, 7);
+    if (!array_key_exists($ym, $months)) {
+        continue;
+    }
+    $unit_cost = cost_price_on($cost_history, $order_date, $product->cost_price);
+    $months[$ym]['sell'] += $row->quantity * $row->unit_price;
+    $months[$ym]['cost'] += $row->quantity * $unit_cost;
+}
+
+$chart_labels = [];
+$chart_sell = [];
+$chart_cost = [];
+foreach ($months as $ym => $vals) {
+    $chart_labels[] = date('M', strtotime($ym . '-01'));
+    $chart_sell[] = round($vals['sell'], 2);
+    $chart_cost[] = round($vals['cost'], 2);
+}
+$total_margin = array_sum($chart_sell) - array_sum($chart_cost);
+
 $_title = 'Product Detail';
 require '../_head.php';
 ?>
@@ -92,6 +144,7 @@ require '../_head.php';
     <table class="form-table">
         <tr><td style="width:130px;">Name</td><td><?= h($product->name) ?></td></tr>
         <tr><td>Category</td><td><?= h($product->category_name) ?></td></tr>
+        <tr><td>Cost Price (per unit)</td><td>RM <?= number_format($product->cost_price, 2) ?></td></tr>
         <tr><td>Price</td><td>RM <?= number_format($product->price, 2) ?></td></tr>
         <tr><td>Stock Qty</td><td>
             <?= $product->stock_qty ?>
@@ -109,6 +162,81 @@ require '../_head.php';
     </p>
 </div>
 </div>
+
+<section class="sales-panel">
+    <div class="sales-panel-head">
+        <div>
+            <h2>Sales Performance</h2>
+            <p class="hint">Monthly sell price vs. cost — the shaded gap is margin</p>
+        </div>
+        <?php if ($has_sales): ?>
+        <div class="margin-total">
+            <span>Margin (6&nbsp;mo)</span>
+            <b>RM <?= number_format($total_margin, 2) ?></b>
+        </div>
+        <?php endif; ?>
+    </div>
+
+    <?php if ($has_sales): ?>
+    <div class="chart-wrap">
+        <canvas id="sales-chart" height="90"></canvas>
+    </div>
+    <?php else: ?>
+    <p class="hint">No sales recorded yet for this product.</p>
+    <?php endif; ?>
+</section>
+
+<?php if ($has_sales): ?>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+new Chart(document.getElementById('sales-chart'), {
+    type: 'line',
+    data: {
+        labels: <?= json_encode($chart_labels) ?>,
+        datasets: [
+            {
+                label: 'Cost (RM)',
+                data: <?= json_encode($chart_cost) ?>,
+                borderColor: '#5b7d8c',
+                backgroundColor: '#5b7d8c',
+                borderWidth: 2,
+                pointRadius: 3,
+                tension: 0,
+                fill: false
+            },
+            {
+                label: 'Sell Price (RM)',
+                data: <?= json_encode($chart_sell) ?>,
+                borderColor: '#c98a5e',
+                backgroundColor: 'rgba(122, 155, 113, 0.18)',
+                borderWidth: 2,
+                pointRadius: 3,
+                pointBackgroundColor: '#c98a5e',
+                tension: 0,
+                fill: '-1'
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'bottom' },
+            tooltip: {
+                callbacks: {
+                    label: (ctx) => ctx.dataset.label + ': RM ' + ctx.parsed.y.toLocaleString(undefined, {minimumFractionDigits: 2})
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: { callback: (v) => 'RM ' + v.toLocaleString() }
+            }
+        }
+    }
+});
+</script>
+<?php endif; ?>
 
 <?php if (count($slides) > 1): ?>
 <script>

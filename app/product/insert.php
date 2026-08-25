@@ -44,6 +44,7 @@ if (is_post()) {
     $name        = post('name');
     $category_id = post('category_id');
     $price       = post('price');
+    $cost_price  = post('cost_price');
     $stock_qty   = post('stock_qty');
     $description = post('description');
     $video_url   = post('video_url');
@@ -64,6 +65,16 @@ if (is_post()) {
         $_err['price'] = 'Enter a valid price, e.g. 12.50';
     } elseif ((float)$price <= 0) {
         $_err['price'] = 'Price must be greater than RM0.00';
+    }
+
+    if ($cost_price == '') {
+        $_err['cost_price'] = 'Cost price is required';
+    } elseif (!is_money($cost_price)) {
+        $_err['cost_price'] = 'Enter a valid cost price, e.g. 8.50';
+    } elseif ((float)$cost_price < 0) {
+        $_err['cost_price'] = 'Cost price cannot be negative';
+    } elseif (!isset($_err['price']) && (float)$cost_price >= (float)$price) {
+        $_err['cost_price'] = 'Cost price should be less than the selling price';
     }
 
     if ($stock_qty === '') {
@@ -109,12 +120,15 @@ if (is_post()) {
         rename(root("photos/$photo"), root("photos/$new_photo"));
         $photo = $new_photo;
 
-        $stm = $pdo->prepare("INSERT INTO product (name, category_id, price, stock_qty, description, photo, video_url)
-                               VALUES (?, ?, ?, ?, ?, ?, ?)");
-        $stm->execute([$name, $category_id, $price, $stock_qty, $description, $photo, $video_url ?: null]);
+        $stm = $pdo->prepare("INSERT INTO product (name, category_id, price, cost_price, stock_qty, description, photo, video_url)
+                               VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        $stm->execute([$name, $category_id, $price, $cost_price, $stock_qty, $description, $photo, $video_url ?: null]);
         $product_id = $pdo->lastInsertId();
 
-       
+        $pdo->prepare("INSERT INTO product_cost_history (product_id, cost_price, effective_from) VALUES (?, ?, CURDATE())")
+            ->execute([$product_id, $cost_price]);
+
+
         $order = 0;
         $skipped = [];
         foreach ($gallery_files as $gf) {
@@ -177,6 +191,16 @@ require '../_head.php';
         <tr>
             <td>Category</td>
             <td><?= html_select('category_id', $categories) ?> <?= err('category_id') ?></td>
+        </tr>
+        <tr>
+            <td>Cost Price (per unit)</td>
+            <td>
+                <div class="input-prefix">
+                    <span>RM</span>
+                    <?= html_number('cost_price', 0, '', 0.01) ?>
+                </div>
+                <?= err('cost_price') ?>
+            </td>
         </tr>
         <tr>
             <td>Price</td>
@@ -248,6 +272,25 @@ require '../_head.php';
                 setErr('price', 'Price must be greater than RM0.00');
             } else {
                 setErr('price', '');
+            }
+        });
+    }
+
+    var costPrice = document.getElementById('cost_price');
+    var priceInput = document.getElementById('price');
+    if (costPrice) {
+        costPrice.addEventListener('input', function () {
+            var v = this.value;
+            if (v === '') {
+                setErr('cost_price', 'Cost price is required');
+            } else if (!/^\d+(\.\d{1,2})?$/.test(v)) {
+                setErr('cost_price', 'Enter a valid cost price, e.g. 8.50');
+            } else if (parseFloat(v) < 0) {
+                setErr('cost_price', 'Cost price cannot be negative');
+            } else if (priceInput.value !== '' && parseFloat(v) >= parseFloat(priceInput.value)) {
+                setErr('cost_price', 'Cost price should be less than the selling price');
+            } else {
+                setErr('cost_price', '');
             }
         });
     }

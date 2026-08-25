@@ -47,6 +47,7 @@ if (is_get()) {
     $name        = $product->name;
     $category_id = $product->category_id;
     $price       = $product->price;
+    $cost_price  = $product->cost_price;
     $stock_qty   = $product->stock_qty;
     $description = $product->description;
     $video_url   = $product->video_url;
@@ -81,6 +82,7 @@ if (is_post()) {
     $name        = post('name');
     $category_id = post('category_id');
     $price       = post('price');
+    $cost_price  = post('cost_price');
     $stock_qty   = post('stock_qty');
     $description = post('description');
     $video_url   = post('video_url');
@@ -101,6 +103,16 @@ if (is_post()) {
         $_err['price'] = 'Enter a valid price, e.g. 12.50';
     } elseif ((float)$price <= 0) {
         $_err['price'] = 'Price must be greater than RM0.00';
+    }
+
+    if ($cost_price == '') {
+        $_err['cost_price'] = 'Cost price is required';
+    } elseif (!is_money($cost_price)) {
+        $_err['cost_price'] = 'Enter a valid cost price, e.g. 8.50';
+    } elseif ((float)$cost_price < 0) {
+        $_err['cost_price'] = 'Cost price cannot be negative';
+    } elseif (!isset($_err['price']) && (float)$cost_price >= (float)$price) {
+        $_err['cost_price'] = 'Cost price should be less than the selling price';
     }
 
     if ($stock_qty === '') {
@@ -147,10 +159,19 @@ if (is_post()) {
             $_SESSION['edit_photo'] = $photo;
         }
 
+        $old_cost_price = $pdo->prepare("SELECT cost_price FROM product WHERE id = ?");
+        $old_cost_price->execute([$id]);
+        $old_cost_price = $old_cost_price->fetchColumn();
+
         $stm = $pdo->prepare("UPDATE product
-                               SET name = ?, category_id = ?, price = ?, stock_qty = ?, description = ?, photo = ?, video_url = ?
+                               SET name = ?, category_id = ?, price = ?, cost_price = ?, stock_qty = ?, description = ?, photo = ?, video_url = ?
                                WHERE id = ?");
-        $stm->execute([$name, $category_id, $price, $stock_qty, $description, $photo, $video_url ?: null, $id]);
+        $stm->execute([$name, $category_id, $price, $cost_price, $stock_qty, $description, $photo, $video_url ?: null, $id]);
+
+        if (number_format((float)$old_cost_price, 2) !== number_format((float)$cost_price, 2)) {
+            $pdo->prepare("INSERT INTO product_cost_history (product_id, cost_price, effective_from) VALUES (?, ?, CURDATE())")
+                ->execute([$id, $cost_price]);
+        }
 
         $order = count($gallery_photos);
         $skipped = [];
@@ -250,6 +271,16 @@ require '../_head.php';
             <td><?= html_select('category_id', $categories) ?> <?= err('category_id') ?></td>
         </tr>
         <tr>
+            <td>Cost Price (per unit)</td>
+            <td>
+                <div class="input-prefix">
+                    <span>RM</span>
+                    <?= html_number('cost_price', 0, '', 0.01) ?>
+                </div>
+                <?= err('cost_price') ?>
+            </td>
+        </tr>
+        <tr>
             <td>Price</td>
             <td>
                 <div class="input-prefix">
@@ -317,6 +348,25 @@ require '../_head.php';
                 setErr('price', 'Price must be greater than RM0.00');
             } else {
                 setErr('price', '');
+            }
+        });
+    }
+
+    var costPrice = document.getElementById('cost_price');
+    var priceInput = document.getElementById('price');
+    if (costPrice) {
+        costPrice.addEventListener('input', function () {
+            var v = this.value;
+            if (v === '') {
+                setErr('cost_price', 'Cost price is required');
+            } else if (!/^\d+(\.\d{1,2})?$/.test(v)) {
+                setErr('cost_price', 'Enter a valid cost price, e.g. 8.50');
+            } else if (parseFloat(v) < 0) {
+                setErr('cost_price', 'Cost price cannot be negative');
+            } else if (priceInput.value !== '' && parseFloat(v) >= parseFloat(priceInput.value)) {
+                setErr('cost_price', 'Cost price should be less than the selling price');
+            } else {
+                setErr('cost_price', '');
             }
         });
     }
