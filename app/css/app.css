@@ -639,3 +639,136 @@ ul.timeline li .timeline-note { margin-top: 4px; font-size: 13px; color: var(--d
         margin-left: 0 !important;
     }
 }
+
+/* ---------------------------------------------------------------------- */
+/* Product cards                                                           */
+/* ---------------------------------------------------------------------- */
+
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.product-card {
+    display: block;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--ink);
+    text-decoration: none;
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.product-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.10);
+    text-decoration: none;
+}
+
+/* Product image */
+
+.product-image {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    background: var(--bg);
+}
+
+.product-image img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+}
+
+.product-image .no-photo {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+/* Product information */
+
+.product-info {
+    padding: 14px;
+}
+
+.product-info h3 {
+    font-family: 'Work Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    margin: 0 0 6px;
+}
+
+.product-category {
+    color: var(--muted);
+    font-size: 12px;
+    margin: 0 0 12px;
+}
+
+.product-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 10px;
+}
+
+.product-price {
+    color: var(--accent);
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.product-stock {
+    color: var(--muted);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+/* Responsive product grid */
+
+@media (max-width: 900px) {
+    .product-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 650px) {
+    .product-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+}
+
+form.filter-form {
+    max-width: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+form.filter-form input[type=search] {
+    flex: 1;
+    margin: 0;
+}
+
+form.filter-form select {
+    width: 200px;
+    margin: 0;
+}
+
+form.filter-form button {
+    margin: 0;
+    align-self: center;
+}
+
+form.filter-form a {
+    margin: 0;
+    white-space: nowrap;
+}

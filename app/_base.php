@@ -488,3 +488,4 @@ function build_order_receipt_pdf($order, $items) {
 // PAGER
 // =========================================================
 require_once root('lib/SimplePager.php');
+
