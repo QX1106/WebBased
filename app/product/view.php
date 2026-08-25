@@ -91,7 +91,12 @@ require '../_head.php';
     <tr><td style="width:130px;">Name</td><td><?= h($product->name) ?></td></tr>
     <tr><td>Category</td><td><?= h($product->category_name) ?></td></tr>
     <tr><td>Price</td><td>RM <?= number_format($product->price, 2) ?></td></tr>
-    <tr><td>Stock Qty</td><td><?= $product->stock_qty ?></td></tr>
+    <tr><td>Stock Qty</td><td>
+        <?= $product->stock_qty ?>
+        <?php if ($product->stock_qty <= 10): ?>
+            <span style="color:#c0392b; font-weight:bold;">⚠ Low Stock</span>
+        <?php endif; ?>
+    </td></tr>
     <tr><td>Description</td><td><?= nl2br(h($product->description)) ?></td></tr>
 </table>
 

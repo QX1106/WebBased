@@ -190,6 +190,19 @@ require '../_head.php';
                     <button type="button" class="photo-drop-clear">✕ Clear selection</button>
                 </div>
                 <p class="hint">Leave empty to keep the current photo.</p>
+
+                <?php if ($photo): ?>
+                <div style="display:grid; grid-template-columns:repeat(2, max-content); gap:6px; margin-top:6px;">
+                    <button type="button" class="btn-outline" style="padding:4px 10px; font-size:0.85em;"
+                            onclick="submitPhotoTransform('rotate_left')">⟲ Rotate Left</button>
+                    <button type="button" class="btn-outline" style="padding:4px 10px; font-size:0.85em;"
+                            onclick="submitPhotoTransform('rotate_right')">⟳ Rotate Right</button>
+                    <button type="button" class="btn-outline" style="padding:4px 10px; font-size:0.85em;"
+                            onclick="submitPhotoTransform('flip_horizontal')">⇋ Flip Horizontal</button>
+                    <button type="button" class="btn-outline" style="padding:4px 10px; font-size:0.85em;"
+                            onclick="submitPhotoTransform('flip_vertical')">⇅ Flip Vertical</button>
+                </div>
+                <?php endif; ?>
             </td>
         </tr>
         <tr>
@@ -317,6 +330,18 @@ require '../_head.php';
         });
     }
 })();
+</script>
+
+<form method="post" action="/product/photo-transform.php" id="photo-transform-form" style="display:none;">
+    <input type="hidden" name="id" value="<?= $id ?>">
+    <input type="hidden" name="action" id="photo-transform-action" value="">
+</form>
+
+<script>
+    function submitPhotoTransform(action) {
+        document.getElementById('photo-transform-action').value = action;
+        document.getElementById('photo-transform-form').submit();
+    }
 </script>
 
 <?php require '../_foot.php'; ?>
