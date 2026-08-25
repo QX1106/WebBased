@@ -183,4 +183,111 @@ require '../_head.php';
     </table>
 </form>
 
+<script>
+(function () {
+    function setErr(id, msg) {
+        var el = document.getElementById('err_' + id);
+        if (el) el.textContent = msg;
+    }
+
+    var code = document.getElementById('code');
+    if (code) {
+        code.addEventListener('input', function () {
+            var v = this.value.trim();
+            if (v === '') {
+                setErr('code', 'Voucher code is required');
+            } else if (!/^[A-Za-z0-9]{3,30}$/.test(v)) {
+                setErr('code', 'Use 3-30 letters/numbers only, e.g. WELCOME10');
+            } else {
+                setErr('code', '');
+            }
+        });
+    }
+
+    var discountType = document.getElementById('discount_type');
+    var discountValue = document.getElementById('discount_value');
+    function checkDiscountValue() {
+        if (!discountValue) return;
+        var v = discountValue.value;
+        if (v === '') {
+            setErr('discount_value', 'Discount value is required');
+        } else if (!/^\d+(\.\d{1,2})?$/.test(v) || parseFloat(v) <= 0) {
+            setErr('discount_value', 'Enter a valid amount greater than 0');
+        } else if (discountType && discountType.value === 'Percentage' && parseFloat(v) > 100) {
+            setErr('discount_value', 'Percentage cannot exceed 100');
+        } else {
+            setErr('discount_value', '');
+        }
+    }
+    if (discountType) {
+        discountType.addEventListener('change', function () {
+            setErr('discount_type', this.value === '' ? 'Choose a discount type' : '');
+            checkDiscountValue();
+        });
+    }
+    if (discountValue) {
+        discountValue.addEventListener('input', checkDiscountValue);
+    }
+
+    var maxDiscount = document.getElementById('max_discount');
+    if (maxDiscount) {
+        maxDiscount.addEventListener('input', function () {
+            var v = this.value;
+            if (v === '') {
+                setErr('max_discount', '');
+            } else if (!/^\d+(\.\d{1,2})?$/.test(v) || parseFloat(v) <= 0) {
+                setErr('max_discount', 'Enter a valid amount greater than 0, or leave blank for no cap');
+            } else {
+                setErr('max_discount', '');
+            }
+        });
+    }
+
+    var minSpend = document.getElementById('min_spend');
+    if (minSpend) {
+        minSpend.addEventListener('input', function () {
+            var v = this.value;
+            if (v !== '' && !/^\d+(\.\d{1,2})?$/.test(v)) {
+                setErr('min_spend', 'Enter a valid amount, e.g. 50.00');
+            } else {
+                setErr('min_spend', '');
+            }
+        });
+    }
+
+    var maxUses = document.getElementById('max_uses');
+    if (maxUses) {
+        maxUses.addEventListener('input', function () {
+            var v = this.value;
+            if (v !== '' && (!/^\d+$/.test(v) || parseInt(v, 10) <= 0)) {
+                setErr('max_uses', 'Enter a whole number greater than 0, or leave blank for unlimited');
+            } else {
+                setErr('max_uses', '');
+            }
+        });
+    }
+
+    var validFrom = document.getElementById('valid_from');
+    var validUntil = document.getElementById('valid_until');
+    function checkDates() {
+        if (validFrom && validFrom.value === '') {
+            setErr('valid_from', 'Enter a valid date');
+        } else if (validFrom) {
+            setErr('valid_from', '');
+        }
+        if (validUntil) {
+            if (validUntil.value === '') {
+                setErr('valid_until', 'Enter a valid date');
+            } else if (validFrom && validFrom.value && validUntil.value < validFrom.value) {
+                setErr('valid_until', 'Must be on or after the valid-from date');
+            } else {
+                setErr('valid_until', '');
+            }
+        }
+    }
+    if (validFrom) validFrom.addEventListener('change', checkDates);
+    if (validUntil) validUntil.addEventListener('change', checkDates);
+})();
+</script>
+
 <?php require '../_foot.php'; ?>

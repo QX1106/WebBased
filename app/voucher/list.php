@@ -20,11 +20,13 @@ if (!in_array($dir, ['asc', 'desc'])) $dir = 'desc';
 $conditions = ['code LIKE ?'];
 $params = ["%$search%"];
 if ($status_filter == 'Active') {
-    $conditions[] = "status = 'Active' AND valid_until >= CURDATE()";
+    $conditions[] = "status = 'Active' AND valid_from <= CURDATE() AND valid_until >= CURDATE()";
 } elseif ($status_filter == 'Inactive') {
     $conditions[] = "status = 'Inactive'";
 } elseif ($status_filter == 'Expired') {
     $conditions[] = "status = 'Active' AND valid_until < CURDATE()";
+} elseif ($status_filter == 'Scheduled') {
+    $conditions[] = "status = 'Active' AND valid_from > CURDATE()";
 }
 $where_sql = 'WHERE ' . implode(' AND ', $conditions);
 
@@ -54,7 +56,7 @@ require '../_head.php';
 </form>
 
 <p class="status-filter">
-    <?php foreach (['' => 'All', 'Active' => 'Active', 'Inactive' => 'Inactive', 'Expired' => 'Expired'] as $val => $label): ?>
+    <?php foreach (['' => 'All', 'Active' => 'Active', 'Scheduled' => 'Scheduled', 'Inactive' => 'Inactive', 'Expired' => 'Expired'] as $val => $label): ?>
         <a href="?status=<?= $val ?>&search=<?= urlencode($search) ?>" class="<?= $status_filter === $val ? 'active' : '' ?>"><?= h($label) ?></a>
     <?php endforeach; ?>
 </p>

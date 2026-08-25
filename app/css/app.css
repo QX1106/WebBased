@@ -303,6 +303,7 @@ form label:has(input[type=checkbox]) { display: block; text-transform: none; fon
 .status-badge.status-active, .status-badge.status-approved { background: var(--accent-soft); color: #8a4a26; }
 .status-badge.status-inactive, .status-badge.status-pending { background: var(--border); color: var(--muted); }
 .status-badge.status-expired, .status-badge.status-rejected { background: #f4d8d0; color: var(--danger); }
+.status-badge.status-scheduled { background: #dfe6ea; color: #3f5b6b; }
 
 /* ---------------------------------------------------------------------- */
 /* Tables                                                                   */
@@ -638,12 +639,6 @@ ul.timeline li .timeline-note { margin-top: 4px; font-size: 13px; color: var(--d
     .admin-layout main {
         margin-left: 0 !important;
     }
-<<<<<<< HEAD
-    .receipt {
-        display: block;
-        max-width: 480px;
-        margin: 0 auto;
-    }
 }
 
 /* ---------------------------------------------------------------------- */
@@ -778,6 +773,3 @@ form.filter-form a {
     margin: 0;
     white-space: nowrap;
 }
-=======
-}
->>>>>>> 6c4a58273090042574acc1df5f5dcbeaeebd14f8
