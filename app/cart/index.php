@@ -6,6 +6,24 @@ auth('Member');
 // Get current member ID from session (not URL)
 $member_id = $_user->member_id;
 
+// Get this member's address
+$stm = $pdo->prepare("
+    SELECT address
+    FROM member
+    WHERE member_id = ?
+");
+
+$stm->execute([$member_id]);
+$address = $stm->fetchColumn();
+
+// Get payment method
+$stm = $pdo->query("
+    SELECT *
+    FROM payment
+");
+
+$payment_methods = $stm->fetchAll();
+
 // Get this member's cart
 $stm = $pdo->prepare("
     SELECT id
@@ -28,7 +46,7 @@ if ($cart) {
         JOIN product p ON p.id = ci.product_id
         SET ci.quantity = p.stock_qty
         WHERE ci.cart_id = ?
-          AND ci.quantity > p.stock_qty
+        AND ci.quantity > p.stock_qty
     ");
 
     $stm->execute([$cart->id]);
@@ -165,12 +183,24 @@ require '../_head.php';
             </small>
         </div>
 
+        <!-- Address-->
+        <div class="summary-section">
+            <label>Address</label>
+            <textarea><?= $address ?></textarea>
+        </div>
+
         <!-- Payment method placeholder -->
         <div class="summary-section">
             <label>Payment Method</label>
-            <div class="payment-placeholder">
-                Select payment method during checkout
-            </div>
+            <select name="pay_id" required>
+                <option value="" disabled selected>Select Payment Method</option>
+
+                <?php foreach ($payment_methods as $payment): ?>
+                    <option value="<?= $payment->pay_id ?>">
+                        <?= htmlspecialchars($payment->pay_name) ?>
+                    </option>
+                <?php endforeach ?>
+            </select>
         </div>
         <div class="summary-divider"></div>
 
@@ -181,8 +211,7 @@ require '../_head.php';
             </strong>
         </div>
 
-        <!-- Connect this later -->
-        <a href="#" class="checkout-button">
+        <a href="checkout.php" class="checkout-button">
             Proceed to Checkout
         </a>
     </aside>
