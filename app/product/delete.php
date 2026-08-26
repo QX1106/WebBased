@@ -1,5 +1,5 @@
 <?php require '../_base.php'; ?>
-<?php // auth('Admin'); // TODO: re-enable once JW login page is ready ?>
+<?php auth('Admin'); ?>
 <?php
 
 $id = get('id');
@@ -10,7 +10,7 @@ $product = $stm->fetch();
 
 if (!$product) {
     temp('info', 'Product not found.');
-    redirect('/product/admin-draft.php');
+    redirect('/product/list.php');
 }
 
 // Practical 6: get photo file name, delete photo, THEN delete the record
@@ -33,4 +33,4 @@ $stm = $pdo->prepare("DELETE FROM product WHERE id = ?");
 $stm->execute([$id]);
 
 temp('info', "Product '{$product->name}' deleted.");
-redirect('/product/admin-draft.php');
+redirect('/product/list.php');

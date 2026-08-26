@@ -75,7 +75,13 @@ $filter_qs = "&status=$status&search=$search&date_from=$date_from&date_to=$date_
 </form>
 
 <div class="toolbar">
-    <a href="export.php?<?= h(ltrim($filter_qs, '&')) ?>" class="btn-accent">Export CSV</a>
+    <div class="export-dropdown">
+        <button type="button" class="btn-accent" data-toggle-dropdown>Export ▾</button>
+        <div class="dropdown-menu">
+            <a href="export.php?<?= h(ltrim($filter_qs, '&')) ?>">Export as CSV</a>
+            <a href="export-pdf.php?<?= h(ltrim($filter_qs, '&')) ?>">Export as PDF</a>
+        </div>
+    </div>
 </div>
 
 <p class="status-filter">

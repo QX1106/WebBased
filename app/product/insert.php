@@ -1,5 +1,5 @@
 <?php require '../_base.php'; ?>
-<?php // auth('Admin'); // TODO: re-enable once JW login page is ready ?>
+<?php auth('Admin'); ?>
 <?php
 
 
@@ -94,8 +94,8 @@ if (is_post()) {
         $_err['photo'] = 'Product photo is required';
     } elseif (strpos($f->type, 'image/') !== 0) {
         $_err['photo'] = 'File must be an image';
-    } elseif ($f->size > 1 * 1024 * 1024) {
-        $_err['photo'] = 'Image must not exceed 1MB';
+    } elseif ($f->size > 3 * 1024 * 1024) {
+        $_err['photo'] = 'Image must not exceed 3MB';
     }
 
     if (!$_err) {
@@ -122,8 +122,8 @@ if (is_post()) {
                 $skipped[] = $gf->name . ' (not an image)';
                 continue;
             }
-            if ($gf->size > 5 * 1024 * 1024) {
-                $skipped[] = $gf->name . ' (over 5MB)';
+            if ($gf->size > 3 * 1024 * 1024) {
+                $skipped[] = $gf->name . ' (over 3MB)';
                 continue;
             }
             $gphoto = save_photo($gf, 'photos', 800, 600);
@@ -139,7 +139,7 @@ if (is_post()) {
             $msg .= ' Skipped: ' . implode(', ', $skipped) . '.';
         }
         temp('info', $msg);
-        redirect('/product/admin-draft.php');
+        redirect('/product/list.php');
     }
 }
 
@@ -152,21 +152,22 @@ require '../_head.php';
 <form method="post" enctype="multipart/form-data" novalidate>
     <table class="form-table">
         <tr>
-            <td style="vertical-align:middle;">Photo</td>
+            <td style="vertical-align:top;">Photo</td>
             <td>
-                <label class="upload" tabindex="0">
-                    <img src="/images/placeholder.png" data-src="/images/placeholder.png">
-                    <?= html_file('photo', 'image/*', 'hidden') ?>
-                </label>
-                <p class="hint">Required — click the box above to browse and select an image.</p>
                 <?= err('photo') ?>
+                <div class="photo-drop" tabindex="0" role="button" aria-label="Upload product photo">
+                    <img src="" style="display:none">
+                    <div class="photo-drop-hint">Drag &amp; drop a photo here, or click to browse<br><small>Max 3MB</small></div>
+                    <?= html_file('photo', 'image/*', "style='display:none'") ?>
+                    <button type="button" class="photo-drop-clear">✕ Clear selection</button>
+                </div>
             </td>
         </tr>
         <tr>
             <td style="vertical-align:top; padding-top:16px;">Additional Photos</td>
             <td style="padding-top:16px;">
                 <input type="file" id="gallery" name="gallery[]" accept="image/*" multiple>
-                <p class="hint">Optional — pick several images for the product's photo gallery (max 1MB each).</p>
+                <p class="hint">Optional — pick several images for the product's photo gallery (max 3MB each).</p>
             </td>
         </tr>
         <tr>
@@ -206,7 +207,7 @@ require '../_head.php';
             <td></td>
             <td>
                 <button>Save</button>
-                <a href="/product/admin-draft.php">Cancel</a>
+                <a href="/product/list.php">Cancel</a>
             </td>
         </tr>
     </table>

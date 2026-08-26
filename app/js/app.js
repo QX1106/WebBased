@@ -9,6 +9,34 @@ $(function () {
         }
     });
 
+    // Export dropdown 
+    $(document).on('click', '[data-toggle-dropdown]', function (e) {
+        e.stopPropagation();
+        $(this).closest('.export-dropdown').toggleClass('open');
+    });
+    $(document).on('click', function () {
+        $('.export-dropdown.open').removeClass('open');
+    });
+
+    // Send order receipt email to customer
+    $(document).on('click', '#send-receipt-email', function () {
+        const $btn = $(this);
+        const orderId = $btn.data('order-id');
+        const $status = $('#send-receipt-status');
+        const originalText = $btn.text();
+
+        $btn.prop('disabled', true).text('Sending...');
+        $status.text('').removeClass('err ok');
+
+        $.post('send-receipt-email.php', { id: orderId }, function (data) {
+            $status.text(data.message).addClass(data.ok ? 'ok' : 'err');
+        }, 'json').fail(function () {
+            $status.text('Could not send the email. Please try again.').addClass('err');
+        }).always(function () {
+            $btn.prop('disabled', false).text(originalText);
+        });
+    });
+
     // Admin sidebar
     $('#sidebar-toggle').on('click', function () {
         const hidden = $('body').toggleClass('sidebar-hidden').hasClass('sidebar-hidden');
@@ -57,11 +85,6 @@ $(function () {
         location.href = url || location.href;
     });
 
-    // Print dialog 
-    $('[data-print]').on('click', function () {
-        window.print();
-    });
-
     // Submit a POST request on click ([data-post])
     $('[data-post]').on('click', function () {
         const url = $(this).data('post') || location.href;
@@ -76,7 +99,17 @@ $(function () {
         const $field = $('#' + $err.attr('id').replace(/^err_/, ''));
         if ($field.length) $target = $field;
     }
-    if ($target && $target.length) $target.trigger('focus');
+    if ($target && $target.length) {
+        $target.trigger('focus');
+        // Focusing a pre-filled text field puts the caret at the start by
+        // default — move it to the end instead, so typing continues from
+        // where the value left off rather than jumping to the front.
+        const el = $target[0];
+        if (typeof el.setSelectionRange === 'function' && (el.type === 'text' || el.type === 'search')) {
+            const len = el.value.length;
+            el.setSelectionRange(len, len);
+        }
+    }
 
     // Reset button
     $('[type=reset]').on('click', function (e) {

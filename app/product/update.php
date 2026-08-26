@@ -1,11 +1,9 @@
 <?php require '../_base.php'; ?>
-<?php // auth('Admin'); // TODO: re-enable once JW login page is ready ?>
+<?php auth('Admin'); ?>
 <?php
 
-// Same fix as insert.php — make DB errors visible instead of silent.
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-// ---- Check a YouTube link actually exists (not just correctly formatted) ---
 function youtube_video_exists($url) {
     $api = 'https://www.youtube.com/oembed?url=' . urlencode($url) . '&format=json';
     $context = stream_context_create(['http' => ['timeout' => 4, 'ignore_errors' => true]]);
@@ -16,7 +14,6 @@ function youtube_video_exists($url) {
     return (bool) preg_match('/\s200\s/', $http_response_header[0]);
 }
 
-// ---- Read multiple uploaded files from an <input name="key[]" multiple> ----
 function get_files($key) {
     $out = [];
     if (!empty($_FILES[$key]) && is_array($_FILES[$key]['name'])) {
@@ -44,7 +41,7 @@ if (is_get()) {
 
     if (!$product) {
         temp('info', 'Product not found.');
-        redirect('/product/admin-draft.php');
+        redirect('/product/list.php');
     }
 
     $name        = $product->name;
@@ -53,8 +50,6 @@ if (is_get()) {
     $stock_qty   = $product->stock_qty;
     $description = $product->description;
     $video_url   = $product->video_url;
-
-    // ---- Practical 6: keep photo filename in SESSION -----------------------
 
     $_SESSION['edit_photo'] = $product->photo;
 }
@@ -102,7 +97,6 @@ if (is_post()) {
         $_err['stock_qty'] = 'Stock quantity must be a whole number, 0 or more';
     }
 
-    
     if ($video_url != '') {
         if (!preg_match('/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))[a-zA-Z0-9_-]{11}/', $video_url)) {
             $_err['video_url'] = 'Enter a valid YouTube link, e.g. https://youtu.be/dQw4w9WgXcQ';
@@ -116,25 +110,22 @@ if (is_post()) {
 
     $gallery_files = get_files('gallery');
 
-    // Photo is optional on update — only validate if a new one is chosen
     $f = get_file('photo');
     if ($f) {
         if (strpos($f->type, 'image/') !== 0) {
             $_err['photo'] = 'File must be an image';
-        } elseif ($f->size > 1 * 1024 * 1024) {
-            $_err['photo'] = 'Image must not exceed 1MB';
+        } elseif ($f->size > 3 * 1024 * 1024) {
+            $_err['photo'] = 'Image must not exceed 3MB';
         }
     }
 
     if (!$_err) {
         if ($f) {
-            // Practical 6: delete old photo, save new one
             if ($photo && file_exists(root("photos/$photo"))) {
                 unlink(root("photos/$photo"));
             }
             $new_photo_raw = save_photo($f, 'photos', 800, 600);
 
-            // Same readable-name treatment as insert.php
             $slug = strtolower(preg_replace('/[^a-z0-9]+/i', '-', trim($name)));
             $slug = trim($slug, '-');
             $new_photo = $slug . '-' . substr(uniqid(), -6) . '.jpg';
@@ -149,7 +140,6 @@ if (is_post()) {
                                WHERE id = ?");
         $stm->execute([$name, $category_id, $price, $stock_qty, $description, $photo, $video_url ?: null, $id]);
 
-        // Append any newly added gallery photos (existing ones are untouched)
         $order = count($gallery_photos);
         $skipped = [];
         foreach ($gallery_files as $gf) {
@@ -157,8 +147,8 @@ if (is_post()) {
                 $skipped[] = $gf->name . ' (not an image)';
                 continue;
             }
-            if ($gf->size > 5 * 1024 * 1024) {
-                $skipped[] = $gf->name . ' (over 5MB)';
+            if ($gf->size > 3 * 1024 * 1024) {
+                $skipped[] = $gf->name . ' (over 3MB)';
                 continue;
             }
             $gphoto = save_photo($gf, 'photos', 800, 600);
@@ -177,7 +167,7 @@ if (is_post()) {
             $msg .= ' Skipped: ' . implode(', ', $skipped) . '.';
         }
         temp('info', $msg);
-        redirect('/product/admin-draft.php');
+        redirect('/product/list.php');
     }
 }
 
@@ -190,15 +180,29 @@ require '../_head.php';
 <form method="post" enctype="multipart/form-data" novalidate>
     <table class="form-table">
         <tr>
-            <td style="vertical-align:middle;">Photo</td>
+            <td style="vertical-align:top;">Photo</td>
             <td>
-                <label class="upload" tabindex="0">
-                    <img src="<?= $photo ? '/photos/' . h($photo) : '/images/placeholder.png' ?>"
-                         data-src="<?= $photo ? '/photos/' . h($photo) : '/images/placeholder.png' ?>">
-                    <?= html_file('photo', 'image/*', 'hidden') ?>
-                </label>
-                <p class="hint">Click the box above to browse and select a new image. Leave empty to keep the current photo.</p>
                 <?= err('photo') ?>
+                <div class="photo-drop" tabindex="0" role="button" aria-label="Upload product photo">
+                    <img src="<?= $photo ? '/photos/' . h($photo) : '' ?>" <?= $photo ? '' : 'style="display:none"' ?>>
+                    <div class="photo-drop-hint" <?= $photo ? 'style="display:none"' : '' ?>>Drag &amp; drop a photo here, or click to browse<br><small>Max 3MB</small></div>
+                    <?= html_file('photo', 'image/*', "style='display:none'") ?>
+                    <button type="button" class="photo-drop-clear">✕ Clear selection</button>
+                </div>
+                <p class="hint">Leave empty to keep the current photo.</p>
+
+                <?php if ($photo): ?>
+                <div style="display:grid; grid-template-columns:repeat(2, max-content); gap:6px; margin-top:6px;">
+                    <button type="button" class="btn-outline" style="padding:4px 10px; font-size:0.85em;"
+                            onclick="submitPhotoTransform('rotate_left')">⟲ Rotate Left</button>
+                    <button type="button" class="btn-outline" style="padding:4px 10px; font-size:0.85em;"
+                            onclick="submitPhotoTransform('rotate_right')">⟳ Rotate Right</button>
+                    <button type="button" class="btn-outline" style="padding:4px 10px; font-size:0.85em;"
+                            onclick="submitPhotoTransform('flip_horizontal')">⇋ Flip Horizontal</button>
+                    <button type="button" class="btn-outline" style="padding:4px 10px; font-size:0.85em;"
+                            onclick="submitPhotoTransform('flip_vertical')">⇅ Flip Vertical</button>
+                </div>
+                <?php endif; ?>
             </td>
         </tr>
         <tr>
@@ -216,7 +220,7 @@ require '../_head.php';
                 </div>
                 <?php endif; ?>
                 <input type="file" id="gallery" name="gallery[]" accept="image/*" multiple>
-                <p class="hint">Add more gallery photos (optional, max 1MB each).</p>
+                <p class="hint">Add more gallery photos (optional, max 3MB each).</p>
             </td>
         </tr>
         <tr>
@@ -256,14 +260,13 @@ require '../_head.php';
             <td></td>
             <td>
                 <button>Update</button>
-                <a href="/product/admin-draft.php">Cancel</a>
+                <a href="/product/list.php">Cancel</a>
             </td>
         </tr>
     </table>
 </form>
 
 <script>
-// ---- Live (client-side) validation
 (function () {
     function setErr(id, msg) {
         var el = document.getElementById('err_' + id);
@@ -327,6 +330,18 @@ require '../_head.php';
         });
     }
 })();
+</script>
+
+<form method="post" action="/product/photo-transform.php" id="photo-transform-form" style="display:none;">
+    <input type="hidden" name="id" value="<?= $id ?>">
+    <input type="hidden" name="action" id="photo-transform-action" value="">
+</form>
+
+<script>
+    function submitPhotoTransform(action) {
+        document.getElementById('photo-transform-action').value = action;
+        document.getElementById('photo-transform-form').submit();
+    }
 </script>
 
 <?php require '../_foot.php'; ?>

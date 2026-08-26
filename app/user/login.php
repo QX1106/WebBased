@@ -1,7 +1,7 @@
 <?php require '../_base.php'; ?>
 <?php
 
-// Already logged in as a Member? Just go home.
+
 if ($_user && $_user->role == 'Member') redirect('/');
 
 $_err = [];
