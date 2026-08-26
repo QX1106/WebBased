@@ -6,7 +6,7 @@ $id = get('id');
 
 // Deliberately scoped to role = Admin only — Super Admin accounts are
 // never editable through this page, even by another Super Admin.
-$stm = $pdo->prepare("SELECT * FROM member WHERE id = ? AND role = 'Admin'");
+$stm = $pdo->prepare("SELECT * FROM member WHERE member_id = ? AND role = 'Admin'");
 $stm->execute([$id]);
 $admin = $stm->fetch();
 
@@ -18,15 +18,9 @@ if (!$admin) {
 $_err = [];
 $action = post('action');
 
-if (is_post() && $action == 'delete') {
-    $pdo->prepare("DELETE FROM member WHERE id = ?")->execute([$admin->id]);
-    temp('info', 'Admin account deleted.');
-    redirect('/superadmin/admins/list.php');
-}
-
 if (is_post() && $action == 'toggle_status') {
     $new_status = $admin->status == 'Active' ? 'Blocked' : 'Active';
-    $pdo->prepare("UPDATE member SET status = ? WHERE id = ?")->execute([$new_status, $admin->id]);
+    $pdo->prepare("UPDATE member SET status = ? WHERE member_id = ?")->execute([$new_status, $admin->member_id]);
     $admin->status = $new_status;
     temp('info', 'Admin has been ' . ($new_status == 'Active' ? 'activated.' : 'deactivated.'));
     redirect("/superadmin/admins/edit.php?id=$id");
@@ -39,7 +33,7 @@ if (is_post() && $action == 'update') {
 
     if (!$username) {
         $_err['username'] = 'Username is required';
-    } elseif (!is_unique('member', 'username', $username, $admin->id, 'id')) {
+    } elseif (!is_unique('member', 'username', $username, $admin->member_id, 'member_id')) {
         $_err['username'] = 'Username is already taken';
     }
 
@@ -47,7 +41,7 @@ if (is_post() && $action == 'update') {
         $_err['email'] = 'Email is required';
     } elseif (!is_email($email)) {
         $_err['email'] = 'Invalid email format';
-    } elseif (!is_unique('member', 'email', $email, $admin->id, 'id')) {
+    } elseif (!is_unique('member', 'email', $email, $admin->member_id, 'member_id')) {
         $_err['email'] = 'Email is already registered';
     }
 
@@ -58,8 +52,8 @@ if (is_post() && $action == 'update') {
     }
 
     if (!$_err) {
-        $pdo->prepare("UPDATE member SET username = ?, email = ?, phone = ?, updated_at = NOW() WHERE id = ?")
-            ->execute([$username, $email, $phone, $admin->id]);
+        $pdo->prepare("UPDATE member SET username = ?, email = ?, phone = ?, updated_at = NOW() WHERE member_id = ?")
+            ->execute([$username, $email, $phone, $admin->member_id]);
         $admin->username = $username;
         $admin->email = $email;
         $admin->phone = $phone;
@@ -88,11 +82,6 @@ require '../../_head.php';
     <form method="post" style="display:inline; max-width:none; margin:0;">
         <input type="hidden" name="action" value="toggle_status">
         <button><?= $admin->status == 'Active' ? 'Deactivate' : 'Activate' ?> Admin</button>
-    </form>
-    <form method="post" style="display:inline; max-width:none; margin:0;"
-          onsubmit="return confirm('Delete this admin account? This cannot be undone.');">
-        <input type="hidden" name="action" value="delete">
-        <button type="submit" style="background:var(--danger); border-color:var(--danger);">Delete Admin</button>
     </form>
 </p>
 

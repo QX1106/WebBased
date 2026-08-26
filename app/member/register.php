@@ -34,8 +34,10 @@ if (is_post()) {
 
     if ($password == '') {
         $_err['password'] = 'Required';
-    } elseif (strlen($password) < 6 || strlen($password) > 100) {
-        $_err['password'] = 'Between 6-100 characters';
+    } elseif (strlen($password) > 100) {
+        $_err['password'] = 'Maximum 100 characters';
+    } elseif (!is_strong_password($password)) {
+        $_err['password'] = 'At least 8 characters, with an uppercase letter, a number, and a symbol';
     }
 
     if ($confirm == '') {
@@ -68,20 +70,34 @@ if (is_post()) {
     }
 
     if (!$_err) {
+        // Photo is saved to disk now (harmless orphan file if never
+        // verified), but the account itself is NOT written to the
+        // database yet — only after the OTP is confirmed in
+        // verify-email.php. Until then everything lives in the session.
         $photo = $f ? save_photo($f, 'uploads/member', 200, 200) : null;
 
-        // OTP
         $otp = strval(random_int(100000, 999999));
 
-        $stm = $pdo->prepare("INSERT INTO member (username, email, password, phone, address, photo, role, status, email_verified, email_otp, email_otp_expires, created_at)
-                               VALUES (?, ?, ?, ?, ?, ?, 'Member', 'Active', 0, ?, NOW() + INTERVAL 15 MINUTE, NOW())");
-        $stm->execute([$username, $email, password_hash($password, PASSWORD_DEFAULT), $phone, $address, $photo, $otp]);
+        $_SESSION['pending_registration'] = [
+            'username' => $username,
+            'email' => $email,
+            'password_hash' => password_hash($password, PASSWORD_DEFAULT),
+            'phone' => $phone,
+            'address' => $address,
+            'photo' => $photo,
+            'otp' => $otp,
+            'otp_expires' => time() + 15 * 60, // 15 minutes
+        ];
 
-        send_email(
+        $sent = send_email(
             $email,
             'Verify your email - Stationary Online Store',
             "<p>Hi " . h($username) . ",</p><p>Your verification code is:</p><h2>$otp</h2><p>This code expires in 15 minutes.</p>"
         );
+
+        // Pass the send result across the redirect so verify-email.php
+        // only shows its dev-mode fallback when this actually failed.
+        temp('email_sent', $sent ? '1' : '0');
 
         redirect('/member/verify-email.php?email=' . urlencode($email));
     }
@@ -96,27 +112,40 @@ if (is_post()) {
 
     <label for="username">Username</label>
     <?= err('username') ?>
-    <?= html_text('username', "maxlength='50' autofocus data-check-available='username'") ?>
+    <?= html_text('username', "maxlength='50' autofocus data-check-available='username' placeholder='Choose a username'") ?>
 
     <label for="email">Email</label>
     <?= err('email') ?>
-    <?= html_text('email', "maxlength='100' data-check-available='email'") ?>
+    <?= html_text('email', "maxlength='100' data-check-available='email' placeholder='you@example.com'") ?>
 
     <label for="password">Password</label>
     <?= err('password') ?>
-    <?= html_password('password', "maxlength='100'") ?>
+    <div class="pw-field">
+        <?= html_password('password', "maxlength='100' placeholder='Enter password'") ?>
+        <button type="button" class="toggle-pw" data-target="password" tabindex="-1"></button>
+    </div>
+    <ul class="pw-requirements">
+        <li>At least 8 characters</li>
+        <li>One uppercase letter</li>
+        <li>One number</li>
+        <li>One symbol (e.g. ! @ # $ %)</li>
+    </ul>
 
     <label for="confirm">Confirm Password</label>
     <?= err('confirm') ?>
-    <?= html_password('confirm', "maxlength='100'") ?>
+    <div class="pw-field">
+        <?= html_password('confirm', "maxlength='100' placeholder='Re-enter your password'") ?>
+        <button type="button" class="toggle-pw" data-target="confirm" tabindex="-1"></button>
+    </div>
 
     <label for="phone">Phone</label>
     <?= err('phone') ?>
-    <?= html_text('phone', "maxlength='20'") ?>
+    <?= html_text('phone', "maxlength='20' placeholder='012-3456789'") ?>
 
-    <label for="address">Address</label>
+    <label for="address">Address (Optional)</label>
     <?= err('address') ?>
-    <?= html_textarea('address', "maxlength='255'") ?>
+    <?= html_textarea('address', "maxlength='255' placeholder='Street, city, state, postcode'") ?>
+    <small>You can skip this now and add it later from your Profile page.</small>
 
     <label>Profile Photo</label>
     <?= err('photo') ?>

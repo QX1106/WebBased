@@ -125,6 +125,25 @@ $(function () {
         }
     });
 
+    // Password show/hide toggle. Pages just need an empty
+    // <button class="toggle-pw" data-target="fieldId"></button> right
+    // after the password <input> — no PHP-generated SVGs or per-page
+    // <script> needed anymore.
+    const EYE_OPEN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+    const EYE_CLOSED = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l18 18"/><path d="M10.6 10.6a3 3 0 0 0 4.2 4.2"/><path d="M9.9 5.1A11 11 0 0 1 12 5c7 0 11 7 11 7a13.4 13.4 0 0 1-3.1 3.9M6.6 6.6C3.9 8.3 2 12 2 12s4 7 11 7c1.4 0 2.6-.2 3.7-.6"/></svg>';
+
+    $('.toggle-pw').each(function () {
+        $(this).html(EYE_OPEN);
+    });
+
+    $('.toggle-pw').on('click', function () {
+        const $btn = $(this);
+        const $input = $('#' + $btn.data('target'));
+        const isHidden = $input.attr('type') === 'password';
+        $input.attr('type', isHidden ? 'text' : 'password');
+        $btn.html(isHidden ? EYE_CLOSED : EYE_OPEN);
+    });
+
     // Photo upload
     $('.photo-drop').each(function () {
         const $zone = $(this);

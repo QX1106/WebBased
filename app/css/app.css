@@ -566,6 +566,15 @@ svg.chart .chart-value { font-family: 'Work Sans', sans-serif; font-size: 11px; 
 .toggle-pw:hover { background: none; color: var(--ink); }
 .toggle-pw svg { display: block; width: 18px; height: 18px; }
 
+.pw-requirements {
+    margin: 6px 0 0;
+    padding-left: 18px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+}
+.pw-requirements li { margin: 0; }
+
 /* ---------------------------------------------------------------------- */
 /* Print (order receipt) — "Download Receipt" opens the browser print       */
 /* dialog; the user saves it as a PDF. Hidden on screen, only shown when   */

@@ -39,8 +39,9 @@
 $_nav_categories = $pdo->query("SELECT id, name FROM category ORDER BY name")->fetchAll();
 ?>
 
-<?php if ($_user && $_user->role == 'Admin'): ?>
+<?php if ($_user && in_array($_user->role, ['Admin', 'Super Admin'])): ?>
     <?php $_path = $_SERVER['REQUEST_URI']; ?>
+    <?php $_is_super = $_user->role == 'Super Admin'; ?>
     <div class="admin-topbar">
         <button type="button" id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle sidebar">&#9776;</button>
     </div>
@@ -48,16 +49,27 @@ $_nav_categories = $pdo->query("SELECT id, name FROM category ORDER BY name")->f
         <aside class="sidebar">
             <a href="/" class="brand">Stationary Online Store</a>
             <nav>
-                <a href="/dashboard.php" class="<?= $_path == '/dashboard.php' ? 'active' : '' ?>">Dashboard</a>
-                <a href="/member/list.php" class="<?= str_starts_with($_path, '/member') ? 'active' : '' ?>">Members</a>
-                <a href="/order/list.php" class="<?= str_starts_with($_path, '/order') ? 'active' : '' ?>">Orders</a>
-                <a href="/product/list.php" class="<?= str_starts_with($_path, '/product') ? 'active' : '' ?>">Products</a>
-                <!-- TEMP: remove once /product/list.php is built -->
-                <a href="/product/admin-draft.php">Product (Admin Draft)</a>
-                <a href="/admin/profile.php" class="<?= $_path == '/admin/profile.php' || $_path == '/admin/edit.php' || $_path == '/admin/password.php' ? 'active' : '' ?>">My Profile</a>
+                <?php if ($_is_super): ?>
+                    <a href="/superadmin/dashboard.php" class="<?= $_path == '/superadmin/dashboard.php' ? 'active' : '' ?>">Dashboard</a>
+                    <a href="/superadmin/admins/list.php" class="<?= str_starts_with($_path, '/superadmin/admins') ? 'active' : '' ?>">Manage Admin Account</a>
+                    <a href="/member/list.php" class="<?= str_starts_with($_path, '/member') ? 'active' : '' ?>">Members</a>
+                    <a href="/order/list.php" class="<?= str_starts_with($_path, '/order') ? 'active' : '' ?>">Orders</a>
+                    <a href="/product/list.php" class="<?= str_starts_with($_path, '/product') ? 'active' : '' ?>">Products</a>
+                    <!-- TEMP: remove once /product/list.php is built -->
+                    <a href="/product/admin-draft.php">Product (Admin Draft)</a>
+                    <a href="/superadmin/profile.php" class="<?= in_array($_path, ['/superadmin/profile.php', '/superadmin/edit.php', '/superadmin/password.php']) ? 'active' : '' ?>">My Profile</a>
+                <?php else: ?>
+                    <a href="/dashboard.php" class="<?= $_path == '/dashboard.php' ? 'active' : '' ?>">Dashboard</a>
+                    <a href="/member/list.php" class="<?= str_starts_with($_path, '/member') ? 'active' : '' ?>">Members</a>
+                    <a href="/order/list.php" class="<?= str_starts_with($_path, '/order') ? 'active' : '' ?>">Orders</a>
+                    <a href="/product/list.php" class="<?= str_starts_with($_path, '/product') ? 'active' : '' ?>">Products</a>
+                    <!-- TEMP: remove once /product/list.php is built -->
+                    <a href="/product/admin-draft.php">Product (Admin Draft)</a>
+                    <a href="/admin/profile.php" class="<?= in_array($_path, ['/admin/profile.php', '/admin/edit.php', '/admin/password.php']) ? 'active' : '' ?>">My Profile</a>
+                <?php endif; ?>
             </nav>
             <div class="sidebar-foot">
-                <a href="/admin/profile.php" class="user-chip" style="text-decoration:none;">
+                <a href="<?= $_is_super ? '/superadmin/profile.php' : '/admin/profile.php' ?>" class="user-chip" style="text-decoration:none;">
                     <?= user_avatar($_user, 32) ?>
                     <span><?= h($_user->username) ?> (<?= h($_user->role) ?>)</span>
                 </a>

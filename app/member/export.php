@@ -1,5 +1,5 @@
 <?php require '../_base.php'; ?>
-<?php auth('Admin'); ?>
+<?php auth('Admin', 'Super Admin'); ?>
 <?php
 
 // CSV 
@@ -7,7 +7,8 @@ $search = get('search', '');
 
 $stm = $pdo->prepare("SELECT member_id, username, email, phone, address, role, status, created_at
                        FROM member
-                       WHERE username LIKE ? OR email LIKE ?
+                       WHERE role = 'Member'
+                         AND (username LIKE ? OR email LIKE ?)
                        ORDER BY member_id");
 $stm->execute(["%$search%", "%$search%"]);
 $rows = $stm->fetchAll();

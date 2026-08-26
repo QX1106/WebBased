@@ -1,5 +1,5 @@
 <?php require '../_base.php'; ?>
-<?php auth('Admin'); ?>
+<?php auth('Admin', 'Super Admin'); ?>
 <?php
 
 $search = get('search', '');
@@ -18,7 +18,12 @@ $fields = [
 if (!in_array($sort, $fields)) $sort = 'member_id';
 if (!in_array($dir, ['asc', 'desc'])) $dir = 'asc';
 
-$query = "SELECT * FROM member WHERE username LIKE ? OR email LIKE ? ORDER BY $sort $dir";
+// Only customer accounts belong here — Admin/Super Admin accounts have
+// their own dedicated management page.
+$query = "SELECT * FROM member
+          WHERE role = 'Member'
+            AND (username LIKE ? OR email LIKE ?)
+          ORDER BY $sort $dir";
 $params = ["%$search%", "%$search%"];
 
 $page = get('page', 1);
