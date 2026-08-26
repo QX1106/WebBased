@@ -10,7 +10,7 @@ $admin_stats = $pdo->query("SELECT
 
 $member_total = (int) $pdo->query("SELECT COUNT(*) FROM member WHERE role = 'Member'")->fetchColumn();
 
-$recent_admins = $pdo->query("SELECT id, username, email, status, created_at
+$recent_admins = $pdo->query("SELECT member_id, username, email, status, created_at
                                FROM member
                                WHERE role = 'Admin'
                                ORDER BY created_at DESC
@@ -51,7 +51,7 @@ require '../_head.php';
         <td><?= h($row->email) ?></td>
         <td><?= h($row->status) ?></td>
         <td><?= h($row->created_at) ?></td>
-        <td><a href="/superadmin/admins/edit.php?id=<?= $row->id ?>">Manage</a></td>
+        <td><a href="/superadmin/admins/edit.php?id=<?= $row->member_id ?>">Manage</a></td>
     </tr>
     <?php endforeach; ?>
     <?php if (!$recent_admins): ?>

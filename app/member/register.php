@@ -34,8 +34,10 @@ if (is_post()) {
 
     if ($password == '') {
         $_err['password'] = 'Required';
-    } elseif (strlen($password) < 6 || strlen($password) > 100) {
-        $_err['password'] = 'Between 6-100 characters';
+    } elseif (strlen($password) > 100) {
+        $_err['password'] = 'Maximum 100 characters';
+    } elseif (!is_strong_password($password)) {
+        $_err['password'] = 'At least 8 characters, with an uppercase letter, a number, and a symbol';
     }
 
     if ($confirm == '') {
@@ -96,27 +98,28 @@ if (is_post()) {
 
     <label for="username">Username</label>
     <?= err('username') ?>
-    <?= html_text('username', "maxlength='50' autofocus data-check-available='username'") ?>
+    <?= html_text('username', "maxlength='50' autofocus data-check-available='username' placeholder='Choose a username'") ?>
 
     <label for="email">Email</label>
     <?= err('email') ?>
-    <?= html_text('email', "maxlength='100' data-check-available='email'") ?>
+    <?= html_text('email', "maxlength='100' data-check-available='email' placeholder='you@example.com'") ?>
 
     <label for="password">Password</label>
     <?= err('password') ?>
-    <?= html_password('password', "maxlength='100'") ?>
+    <?= html_password('password', "maxlength='100' placeholder='8+ chars, 1 uppercase, 1 number, 1 symbol'") ?>
 
     <label for="confirm">Confirm Password</label>
     <?= err('confirm') ?>
-    <?= html_password('confirm', "maxlength='100'") ?>
+    <?= html_password('confirm', "maxlength='100' placeholder='Re-enter your password'") ?>
 
     <label for="phone">Phone</label>
     <?= err('phone') ?>
-    <?= html_text('phone', "maxlength='20'") ?>
+    <?= html_text('phone', "maxlength='20' placeholder='012-3456789'") ?>
 
-    <label for="address">Address</label>
+    <label for="address">Address (Optional)</label>
     <?= err('address') ?>
-    <?= html_textarea('address', "maxlength='255'") ?>
+    <?= html_textarea('address', "maxlength='255' placeholder='Street, city, state, postcode'") ?>
+    <small>You can skip this now and add it later from your Profile page.</small>
 
     <label>Profile Photo</label>
     <?= err('photo') ?>
