@@ -94,15 +94,8 @@ $_title = 'Product Maintenance';
 
 </div>
 
-<p>
-    <?= $p->count ?> of <?= $p->item_count ?> record(s) |
-    Page <?= $p->page ?> of <?= $p->page_count ?>
-</p>
-
 <?php if (!$arr): ?>
     <p>No products found.</p>
 <?php endif; ?>
-
-<?= $p->links("&sort=$sort&dir=$dir$qs") ?>
 
 <?php require '_foot.php'; ?>
