@@ -36,7 +36,10 @@ require '../../_head.php';
 
 <h1>Admin Management</h1>
 
-<p><a href="/superadmin/admins/create.php">+ Create Admin</a></p>
+<div class="toolbar">
+    <a href="/superadmin/admins/create.php" class="btn-accent">+ Create Admin</a>
+    <a href="export.php?username=<?= urlencode($username) ?>" class="btn-accent">Export CSV</a>
+</div>
 
 <form method="get" class="filters">
     <div>
@@ -68,7 +71,7 @@ require '../../_head.php';
         <td><?= h($row->email) ?></td>
         <td><?= h($row->created_at) ?></td>
         <td><?= h($row->status) ?></td>
-        <td><a href="/superadmin/admins/edit.php?id=<?= $row->id ?>">Manage</a></td>
+        <td><a href="/superadmin/admins/edit.php?id=<?= $row->member_id ?>">Manage</a></td>
     </tr>
     <?php endforeach; ?>
 

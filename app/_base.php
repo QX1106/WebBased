@@ -297,6 +297,54 @@ function is_email($value) {
     return filter_var($value, FILTER_VALIDATE_EMAIL) !== false;
 }
 
+// Requires: 8+ characters, at least one uppercase letter, one number,
+// and one symbol.
+function is_strong_password($value) {
+    return strlen($value) >= 8
+        && preg_match('/[A-Z]/', $value)
+        && preg_match('/[0-9]/', $value)
+        && preg_match('/[^A-Za-z0-9]/', $value);
+}
+
+// =========================================================
+// LOGIN LOCKOUT (3 wrong attempts -> 30 second lock)
+// =========================================================
+const MAX_LOGIN_ATTEMPTS = 3;
+const LOGIN_LOCK_SECONDS = 30;
+
+function is_account_locked($member) {
+    return $member->locked_until && strtotime($member->locked_until) > time();
+}
+
+function login_lock_seconds_remaining($member) {
+    return max(0, strtotime($member->locked_until) - time());
+}
+
+// Call after a wrong password. Locks the account once attempts reach
+// MAX_LOGIN_ATTEMPTS, then resets the counter.
+function record_failed_login($member_id) {
+    global $pdo;
+
+    $pdo->prepare("UPDATE member SET failed_attempts = failed_attempts + 1 WHERE member_id = ?")
+        ->execute([$member_id]);
+
+    $stm = $pdo->prepare("SELECT failed_attempts FROM member WHERE member_id = ?");
+    $stm->execute([$member_id]);
+    $attempts = (int) $stm->fetchColumn();
+
+    if ($attempts >= MAX_LOGIN_ATTEMPTS) {
+        $pdo->prepare("UPDATE member SET locked_until = NOW() + INTERVAL " . LOGIN_LOCK_SECONDS . " SECOND, failed_attempts = 0 WHERE member_id = ?")
+            ->execute([$member_id]);
+    }
+}
+
+// Call after a successful login.
+function reset_login_attempts($member_id) {
+    global $pdo;
+    $pdo->prepare("UPDATE member SET failed_attempts = 0, locked_until = NULL WHERE member_id = ?")
+        ->execute([$member_id]);
+}
+
 function is_money($value) {
     return preg_match('/^\d+(\.\d{1,2})?$/', $value) === 1;
 }
@@ -431,6 +479,8 @@ function export_table_pdf($title, $headers, $rows, $filename) {
 function build_order_receipt_pdf($order, $items) {
     require_once root('lib/TCPDF/tcpdf.php');
 
+    $shipping_address = $order->shipping_address ?: $order->address;
+
     $items_html = '';
     foreach ($items as $it) {
         $items_html .= '<tr>
@@ -463,7 +513,8 @@ function build_order_receipt_pdf($order, $items) {
     <div class="row"><span class="label">Customer</span> ' . h($order->username) . '</div>
     <div class="row"><span class="label">Email</span> ' . h($order->email) . '</div>
     <div class="row"><span class="label">Phone</span> ' . h($order->phone) . '</div>
-    <div class="row"><span class="label">Address</span> ' . h($order->address) . '</div>
+    <div class="row"><span class="label">Address</span> ' . h($shipping_address) . '</div>
+    <div class="row"><span class="label">Payment Method</span> ' . h($order->pay_name ?: 'Not specified') . '</div>
 
     <table>
         <tr><th>Item</th><th align="center">Qty</th><th align="right">Price</th><th align="right">Subtotal</th></tr>

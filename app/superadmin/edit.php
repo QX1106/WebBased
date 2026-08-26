@@ -15,7 +15,7 @@ if (is_post()) {
 
     if (!$username) {
         $_err['username'] = 'Username is required';
-    } elseif (!is_unique('member', 'username', $username, $_user->id, 'id')) {
+    } elseif (!is_unique('member', 'username', $username, $_user->member_id, 'member_id')) {
         $_err['username'] = 'Username is already taken';
     }
 
@@ -23,7 +23,7 @@ if (is_post()) {
         $_err['email'] = 'Email is required';
     } elseif (!is_email($email)) {
         $_err['email'] = 'Invalid email format';
-    } elseif (!is_unique('member', 'email', $email, $_user->id, 'id')) {
+    } elseif (!is_unique('member', 'email', $email, $_user->member_id, 'member_id')) {
         $_err['email'] = 'Email is already registered';
     }
 
@@ -57,8 +57,8 @@ if (is_post()) {
     }
 
     if (!$_err) {
-        $pdo->prepare("UPDATE member SET username = ?, email = ?, phone = ?, photo = ?, updated_at = NOW() WHERE id = ?")
-            ->execute([$username, $email, $phone, $photo, $_user->id]);
+        $pdo->prepare("UPDATE member SET username = ?, email = ?, phone = ?, photo = ?, updated_at = NOW() WHERE member_id = ?")
+            ->execute([$username, $email, $phone, $photo, $_user->member_id]);
 
         // Keep the session copy in sync so the sidebar updates immediately.
         $_user->username = $username;

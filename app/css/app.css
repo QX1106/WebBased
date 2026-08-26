@@ -208,7 +208,9 @@ form.search-bar button, form.search-bar a { margin-top: 0; }
     font-size: 14px;
     transition: border-color .15s;
 }
-.btn-outline:hover { border-color: var(--ink); text-decoration: none; }
+.btn-outline:hover { background: var(--panel); border-color: var(--ink); text-decoration: none; }
+button.btn-outline:disabled { opacity: 0.6; cursor: not-allowed; }
+button.btn-outline:disabled:hover { border-color: var(--border); }
 
 .btn-accent {
     display: inline-block;
@@ -624,6 +626,15 @@ ul.timeline li .timeline-note { margin-top: 4px; font-size: 13px; color: var(--d
 }
 .toggle-pw:hover { background: none; color: var(--ink); }
 .toggle-pw svg { display: block; width: 18px; height: 18px; }
+
+.pw-requirements {
+    margin: 6px 0 0;
+    padding-left: 18px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+}
+.pw-requirements li { margin: 0; }
 
 /* ---------------------------------------------------------------------- */
 /* Print fallback — receipts are downloaded as real PDFs now (see          */
