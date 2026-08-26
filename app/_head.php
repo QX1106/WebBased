@@ -94,7 +94,7 @@ $_nav_categories = $pdo->query("SELECT id, name FROM category ORDER BY name")->f
         <?php if (isset($_user) && $_user): ?>
             <?php if ($_user->role == 'Member'): ?>
                 <a href="/cart/index.php">Cart</a>
-                <a href="/member/profile.php">Orders</a>
+                <a href="/cart/order.php">Orders</a>
             <?php endif; ?>
             <span class="user-chip"><a href="/member/profile.php" style="display:flex;align-items:center;gap:8px;text-decoration:none;"><?= user_avatar($_user, 28) ?> <?= h($_user->username) ?> (<?= h($_user->role) ?>)</a></span>
             <a href="/user/logout.php">Logout</a>
