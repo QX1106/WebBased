@@ -1,5 +1,4 @@
 <?php require '../_base.php'; ?>
-<?php auth('Member'); ?>
 <?php
 
 $id = get('id');
@@ -13,7 +12,7 @@ $product = $stm->fetch();
 
 if (!$product) {
     temp('info', 'Product not found.');
-    redirect('/product/list.php');
+    redirect('/');
 }
 
 function youtube_embed_url($url) {
@@ -47,7 +46,7 @@ $_title = 'Product Detail';
 require '../_head.php';
 ?>
 <p>
-    <a href="/product/list.php">&larr; Back to List</a>
+    <a href="/">&larr; Back to Store</a>
 </p>
 
 <h1>Product Detail</h1>

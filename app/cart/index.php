@@ -223,7 +223,7 @@ require '../_head.php';
         <p>
             Looks like you haven't added anything yet.
         </p>
-        <a href="../_base.php" class="btn-accent">
+        <a href="/" class="btn-accent">
             Continue Shopping
         </a>
     </div>
