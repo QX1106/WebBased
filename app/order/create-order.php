@@ -73,7 +73,7 @@ try {
         INSERT INTO `orders`
             (member_id, order_date, total_amount, order_status, shipping_address, payment_id)
         VALUES
-            (?, NOW(), ?, 'pending', ?, ?)
+            (?, NOW(), ?, 'Pending', ?, ?)
     ");
     $stm->execute([$member_id, $total_amount, $shipping_address, $payment_id]);
     $order_id = $pdo->lastInsertId();

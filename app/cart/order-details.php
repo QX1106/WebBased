@@ -8,7 +8,7 @@ $member_id = $_user->member_id;
 $order_id = get('id');
 
 if (!$order_id || !ctype_digit((string)$order_id)) {
-    redirect('list.php');
+    redirect('order.php');
 }
 
 // Get order details
@@ -24,7 +24,7 @@ $stm->execute([$order_id, $member_id]);
 $order = $stm->fetch();
 
 if (!$order) {
-    redirect('list.php');
+    redirect('order.php');
 }
 
 // Get items in this order
@@ -166,7 +166,7 @@ $items = $stm->fetchAll();
         ← Back to Orders
     </a>
 
-    <?php if ($order->order_status === 'pending'): ?>
+    <?php if ($order->order_status === 'Pending'): ?>
 
         <a href="checkout.php?order_id=<?= $order->order_id ?>"
            class="btn-checkout">
