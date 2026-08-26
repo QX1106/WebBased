@@ -208,7 +208,9 @@ form.search-bar button, form.search-bar a { margin-top: 0; }
     font-size: 14px;
     transition: border-color .15s;
 }
-.btn-outline:hover { border-color: var(--ink); text-decoration: none; }
+.btn-outline:hover { background: var(--panel); border-color: var(--ink); text-decoration: none; }
+button.btn-outline:disabled { opacity: 0.6; cursor: not-allowed; }
+button.btn-outline:disabled:hover { border-color: var(--border); }
 
 .btn-accent {
     display: inline-block;
