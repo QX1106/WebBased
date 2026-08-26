@@ -1,5 +1,5 @@
 <?php require '../_base.php'; ?>
-<?php auth('Admin'); ?>
+<?php auth('Admin', 'Super Admin'); ?>
 <?php
 
 $_err = [];
@@ -62,7 +62,7 @@ if (is_post()) {
     if ($address != '' && strlen($address) > 255) {
         $_err['address'] = 'Maximum 255 characters';
     }
- 
+
     if ($f) {
         if (!str_starts_with($f->type, 'image/')) {
             $_err['photo'] = 'Must be an image file';

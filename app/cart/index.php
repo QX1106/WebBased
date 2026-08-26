@@ -186,7 +186,7 @@ require '../_head.php';
         <!-- Address-->
         <div class="summary-section">
             <label>Address</label>
-            <textarea><?= $address ?></textarea>
+            <textarea id="shipping-address"><?= $address ?></textarea>
         </div>
 
         <!-- Payment method placeholder -->
@@ -211,9 +211,7 @@ require '../_head.php';
             </strong>
         </div>
 
-        <a href="checkout.php" class="checkout-button">
-            Proceed to Checkout
-        </a>
+        <button type="button" id="checkout-btn" class="checkout-button">Proceed to Checkout</button>
     </aside>
 </div>
 
@@ -223,7 +221,7 @@ require '../_head.php';
         <p>
             Looks like you haven't added anything yet.
         </p>
-        <a href="../_base.php" class="btn-accent">
+        <a href="../index.php" class="btn-accent">
             Continue Shopping
         </a>
     </div>
@@ -301,6 +299,47 @@ require '../_head.php';
                 });
         });
     });
+
+    // Checkout button
+var checkoutBtn = document.getElementById('checkout-btn');
+if (checkoutBtn) {
+    checkoutBtn.addEventListener('click', function () {
+        var paySelect = document.querySelector('select[name="pay_id"]');
+        var payId = paySelect ? paySelect.value : '';
+
+        var shippingAddress = document.getElementById('shipping-address').value.trim();
+
+        if (!payId) {
+            alert('Please select a payment method.');
+            return;
+        }
+
+        if (!shippingAddress) {
+            alert('Please enter a shipping address.');
+            return;
+        }
+
+        checkoutBtn.disabled = true;
+        checkoutBtn.textContent = 'Processing...';
+
+        postJSON('/order/create-order.php', { pay_id: payId, shipping_address: shippingAddress })
+            .then(function (data) {
+                if (!data.success) {
+                    alert(data.message || 'Could not create order.');
+                    checkoutBtn.disabled = false;
+                    checkoutBtn.textContent = 'Proceed to Checkout';
+                    return;
+                }
+
+                window.location.href = 'checkout.php?order_id=' + data.order_id;
+            })
+            .catch(function () {
+                alert('Something went wrong. Please try again.');
+                checkoutBtn.disabled = false;
+                checkoutBtn.textContent = 'Proceed to Checkout';
+            });
+    });
+}
 
 })();
 </script>

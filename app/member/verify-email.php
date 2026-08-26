@@ -1,36 +1,40 @@
 <?php require '../_base.php'; ?>
 <?php
 
+$pending = $_SESSION['pending_registration'] ?? null;
 $email = req('email');
 
-$stm = $pdo->prepare("SELECT * FROM member WHERE email = ? AND role = 'Member'");
-$stm->execute([$email]);
-$member = $stm->fetch();
-
-if (!$member) {
-    temp('info', 'Account not found.');
-    redirect('/user/login.php');
-}
-
-if ($member->email_verified) {
-    redirect('/user/login.php');
+// No pending registration in this session, or it doesn't match the email
+// in the URL (e.g. someone bookmarked/reloaded this page later).
+if (!$pending || $pending['email'] !== $email) {
+    temp('info', 'No pending registration found. Please register again.');
+    redirect('/member/register.php');
 }
 
 $_err = [];
 $action = post('action', 'verify');
 
+// Reflects whether the ORIGINAL registration email actually sent —
+// read once from the flash set by register.php, so the dev-mode box
+// below only appears on a genuine failure, not by default.
+$email_sent = null;
+if (!is_post()) {
+    $flag = temp('email_sent');
+    if ($flag !== null) $email_sent = ($flag === '1');
+}
+
 if (is_post() && $action == 'resend') {
     $otp = strval(random_int(100000, 999999));
-    $pdo->prepare("UPDATE member SET email_otp = ?, email_otp_expires = NOW() + INTERVAL 15 MINUTE WHERE member_id = ?")
-        ->execute([$otp, $member->member_id]);
+    $pending['otp'] = $otp;
+    $pending['otp_expires'] = time() + 15 * 60;
+    $_SESSION['pending_registration'] = $pending;
 
-    send_email(
-        $member->email,
+    $email_sent = send_email(
+        $pending['email'],
         'Your new verification code - Stationary Online Store',
         "<p>Your verification code is:</p><h2>$otp</h2><p>This code expires in 15 minutes.</p>"
     );
 
-    $member->email_otp = $otp; // so the dev-mode box below shows the fresh code
     temp('info', 'A new code has been sent to your email.');
 }
 
@@ -39,17 +43,29 @@ if (is_post() && $action == 'verify') {
 
     if (!$otp) {
         $_err['otp'] = 'Enter the code from your email';
-    } elseif ($otp != $member->email_otp) {
+    } elseif ($otp != $pending['otp']) {
         $_err['otp'] = 'Incorrect code';
-    } elseif (!$member->email_otp_expires || strtotime($member->email_otp_expires) < time()) {
+    } elseif (time() > $pending['otp_expires']) {
         $_err['otp'] = 'This code has expired. Request a new one.';
     }
 
     if (!$_err) {
-        $pdo->prepare("UPDATE member SET email_verified = 1, email_otp = NULL, email_otp_expires = NULL WHERE member_id = ?")
-            ->execute([$member->member_id]);
+        // Only now — after the code is confirmed — does the account
+        // actually get created.
+        $stm = $pdo->prepare("INSERT INTO member (username, email, password, phone, address, photo, role, status, email_verified, created_at)
+                               VALUES (?, ?, ?, ?, ?, ?, 'Member', 'Active', 1, NOW())");
+        $stm->execute([
+            $pending['username'],
+            $pending['email'],
+            $pending['password_hash'],
+            $pending['phone'],
+            $pending['address'],
+            $pending['photo'],
+        ]);
 
-        temp('info', 'Email verified! You can now login.');
+        unset($_SESSION['pending_registration']);
+
+        temp('info', 'Email verified! Your account has been created — you can now login.');
         redirect('/user/login.php');
     }
 }
@@ -59,12 +75,12 @@ require '../_head.php';
 ?>
 
 <h1>Verify Your Email</h1>
-<p>We've sent a 6-digit code to <strong><?= h($member->email) ?></strong>. Enter it below to activate your account.</p>
+<p>We've sent a 6-digit code to <strong><?= h($pending['email']) ?></strong>. Enter it below to finish creating your account.</p>
 
-<?php if ($member->email_otp): ?>
+<?php if ($email_sent === false): ?>
 <p style="background:#fff3cd; border:1px solid #ffe08a; padding:8px 12px;">
     <strong>Dev mode:</strong> this local server has no mail relay configured, so here's the code directly for testing:
-    <strong><?= h($member->email_otp) ?></strong>
+    <strong><?= h($pending['otp']) ?></strong>
 </p>
 <?php endif; ?>
 

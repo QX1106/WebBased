@@ -1,6 +1,5 @@
 <?php require '_base.php'; ?>
 <?php require '_head.php'; ?>
-<?php auth('Member'); ?>
 
 <h1>Welcome to Stationary Online Store</h1>
 <p>Your one-stop shop for pens, notebooks, and office supplies.</p>
@@ -48,7 +47,7 @@ $_title = 'Product Maintenance';
     <?= html_search('name', "placeholder='Search product name'") ?>
     <?= html_select('category_id', $categories, 'All Categories') ?>
     <button>Search</button>
-    <a href="/product/list.php">Reset</a>
+    <a href="/">Reset</a>
 </form>
 
 <div class="product-grid">

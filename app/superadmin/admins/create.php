@@ -33,8 +33,8 @@ if (is_post()) {
 
     if (!$password) {
         $_err['password'] = 'Password is required';
-    } elseif (strlen($password) < 6) {
-        $_err['password'] = 'Password must be at least 6 characters';
+    } elseif (!is_strong_password($password)) {
+        $_err['password'] = 'At least 8 characters, with an uppercase letter, a number, and a symbol';
     }
 
     if ($password !== $confirm_password) {
@@ -44,8 +44,8 @@ if (is_post()) {
     if (!$_err) {
         // New accounts created here are always role = Admin — Super Admin
         // accounts are never created through this form.
-        $stm = $pdo->prepare("INSERT INTO member (username, email, phone, password, role, status, created_at)
-                               VALUES (?, ?, ?, ?, 'Admin', 'Active', NOW())");
+        $stm = $pdo->prepare("INSERT INTO member (username, email, phone, password, role, status, email_verified, created_at)
+                               VALUES (?, ?, ?, ?, 'Admin', 'Active', 1, NOW())");
         $stm->execute([$username, $email, $phone, password_hash($password, PASSWORD_DEFAULT)]);
 
         temp('info', 'Admin account created.');
@@ -55,11 +55,6 @@ if (is_post()) {
 
 $_title = 'Create Admin';
 require '../../_head.php';
-?>
-
-<?php
-$eye_open = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>';
-$eye_closed = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l18 18"/><path d="M10.6 10.6a3 3 0 0 0 4.2 4.2"/><path d="M9.9 5.1A11 11 0 0 1 12 5c7 0 11 7 11 7a13.4 13.4 0 0 1-3.1 3.9M6.6 6.6C3.9 8.3 2 12 2 12s4 7 11 7c1.4 0 2.6-.2 3.7-.6"/></svg>';
 ?>
 
 <h1>Create Admin</h1>
@@ -78,36 +73,27 @@ $eye_closed = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
     <?= err('phone') ?>
 
     <label for="password">Password</label>
-    <div class="pw-field">
-        <?= html_password('password', "placeholder='At least 6 characters'") ?>
-        <button type="button" class="toggle-pw" data-target="password" tabindex="-1"><?= $eye_open ?></button>
-    </div>
     <?= err('password') ?>
+    <div class="pw-field">
+        <?= html_password('password', "placeholder='Enter password'") ?>
+        <button type="button" class="toggle-pw" data-target="password" tabindex="-1"></button>
+    </div>
+    <ul class="pw-requirements">
+        <li>At least 8 characters</li>
+        <li>One uppercase letter</li>
+        <li>One number</li>
+        <li>One symbol (e.g. ! @ # $ %)</li>
+    </ul>
 
     <label for="confirm_password">Confirm Password</label>
     <div class="pw-field">
         <?= html_password('confirm_password', "placeholder='Re-enter password'") ?>
-        <button type="button" class="toggle-pw" data-target="confirm_password" tabindex="-1"><?= $eye_open ?></button>
+        <button type="button" class="toggle-pw" data-target="confirm_password" tabindex="-1"></button>
     </div>
     <?= err('confirm_password') ?>
 
     <button>Create Admin</button>
     <a href="/superadmin/admins/list.php">Cancel</a>
 </form>
-
-<script>
-    var eyeOpen = <?= json_encode($eye_open) ?>;
-    var eyeClosed = <?= json_encode($eye_closed) ?>;
-
-    $(function () {
-        $('.toggle-pw').on('click', function () {
-            var $btn = $(this);
-            var $input = $('#' + $btn.data('target'));
-            var isHidden = $input.attr('type') === 'password';
-            $input.attr('type', isHidden ? 'text' : 'password');
-            $btn.html(isHidden ? eyeClosed : eyeOpen);
-        });
-    });
-</script>
 
 <?php require '../../_foot.php'; ?>
