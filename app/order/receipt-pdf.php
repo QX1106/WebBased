@@ -4,9 +4,10 @@
 
 $id = get('id');
 
-$stm = $pdo->prepare("SELECT o.*, m.username, m.email, m.phone, m.address
+$stm = $pdo->prepare("SELECT o.*, m.username, m.email, m.phone, m.address, p.pay_name
                        FROM orders o
                        JOIN member m ON o.member_id = m.member_id
+                       LEFT JOIN payment p ON o.payment_id = p.pay_id
                        WHERE o.order_id = ?");
 $stm->execute([$id]);
 $order = $stm->fetch();
