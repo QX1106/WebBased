@@ -70,34 +70,20 @@ if (is_post()) {
     }
 
     if (!$_err) {
-        // Photo is saved to disk now (harmless orphan file if never
-        // verified), but the account itself is NOT written to the
-        // database yet — only after the OTP is confirmed in
-        // verify-email.php. Until then everything lives in the session.
         $photo = $f ? save_photo($f, 'uploads/member', 200, 200) : null;
 
+        // OTP
         $otp = strval(random_int(100000, 999999));
 
-        $_SESSION['pending_registration'] = [
-            'username' => $username,
-            'email' => $email,
-            'password_hash' => password_hash($password, PASSWORD_DEFAULT),
-            'phone' => $phone,
-            'address' => $address,
-            'photo' => $photo,
-            'otp' => $otp,
-            'otp_expires' => time() + 15 * 60, // 15 minutes
-        ];
+        $stm = $pdo->prepare("INSERT INTO member (username, email, password, phone, address, photo, role, status, email_verified, email_otp, email_otp_expires, created_at)
+                               VALUES (?, ?, ?, ?, ?, ?, 'Member', 'Active', 0, ?, NOW() + INTERVAL 15 MINUTE, NOW())");
+        $stm->execute([$username, $email, password_hash($password, PASSWORD_DEFAULT), $phone, $address, $photo, $otp]);
 
-        $sent = send_email(
+        send_email(
             $email,
             'Verify your email - Stationary Online Store',
             "<p>Hi " . h($username) . ",</p><p>Your verification code is:</p><h2>$otp</h2><p>This code expires in 15 minutes.</p>"
         );
-
-        // Pass the send result across the redirect so verify-email.php
-        // only shows its dev-mode fallback when this actually failed.
-        temp('email_sent', $sent ? '1' : '0');
 
         redirect('/member/verify-email.php?email=' . urlencode($email));
     }
@@ -120,23 +106,11 @@ if (is_post()) {
 
     <label for="password">Password</label>
     <?= err('password') ?>
-    <div class="pw-field">
-        <?= html_password('password', "maxlength='100' placeholder='Enter password'") ?>
-        <button type="button" class="toggle-pw" data-target="password" tabindex="-1"></button>
-    </div>
-    <ul class="pw-requirements">
-        <li>At least 8 characters</li>
-        <li>One uppercase letter</li>
-        <li>One number</li>
-        <li>One symbol (e.g. ! @ # $ %)</li>
-    </ul>
+    <?= html_password('password', "maxlength='100' placeholder='8+ chars, 1 uppercase, 1 number, 1 symbol'") ?>
 
     <label for="confirm">Confirm Password</label>
     <?= err('confirm') ?>
-    <div class="pw-field">
-        <?= html_password('confirm', "maxlength='100' placeholder='Re-enter your password'") ?>
-        <button type="button" class="toggle-pw" data-target="confirm" tabindex="-1"></button>
-    </div>
+    <?= html_password('confirm', "maxlength='100' placeholder='Re-enter your password'") ?>
 
     <label for="phone">Phone</label>
     <?= err('phone') ?>
