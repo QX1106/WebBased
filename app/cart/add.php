@@ -5,7 +5,7 @@
 $product_id = (int) post('product_id');
 $qty = (int) post('qty');
 
-$back_url = "/product/view.php?id=$product_id";
+$back_url = "/product/details.php?id=$product_id";
 
 // Validate product + stock
 $stm = $pdo->prepare("SELECT * FROM product WHERE id = ?");

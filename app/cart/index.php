@@ -117,7 +117,7 @@ require '../_head.php';
             </div>
 
             <div class="cart-product-info">
-                <a href="/product/view.php?id=<?= $item->product_id ?>">
+                <a href="/product/details.php?id=<?= $item->product_id ?>">
                     <?= h($item->name) ?>
                 </a>
                 <?php if ($item->stock_qty <= 5): ?>
