@@ -10,7 +10,8 @@ $member_stats = $pdo->query("SELECT
         SUM(status = 'Blocked') AS blocked,
         SUM(MONTH(created_at) = MONTH(CURDATE()) AND YEAR(created_at) = YEAR(CURDATE())) AS new_this_month,
         SUM(last_active IS NOT NULL AND last_active >= NOW() - INTERVAL 10 MINUTE) AS online_now
-    FROM member")->fetch();
+    FROM member
+    WHERE role = 'Member'")->fetch();
 
 $order_stats = $pdo->query("SELECT
         COUNT(*) AS total,
