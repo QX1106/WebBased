@@ -150,14 +150,19 @@ function auth(...$roles) {
 // =========================================================
 // EMAIL (PHPMailer + Gmail SMTP)
 // =========================================================
+// Fill in YOUR OWN Gmail address and App Password below (Google Account
+// -> Security -> 2-Step Verification -> App Passwords). Never use your
+// real Gmail login password here, and never commit real credentials to
+// a public repo — if this project goes on GitHub, move these two lines
+// into a separate untracked config file instead.
 function get_mail() {
     $m = new PHPMailer(true);
     $m->isSMTP();
     $m->SMTPAuth = true;
     $m->Host = 'smtp.gmail.com';
     $m->Port = 587;
-    $m->Username = 'your-email@gmail.com';
-    $m->Password = 'your-16-char-app-password';
+    $m->Username = '0602hehehe@gmail.com';       // <-- put your Gmail address here
+    $m->Password = 'gvix wjyh bzjp hufo';  // <-- put your App Password here
     $m->CharSet = 'utf-8';
     $m->setFrom($m->Username, 'Stationary Online Store');
     return $m;
@@ -316,8 +321,12 @@ function is_unique($table, $field, $value, $except_id = null, $id_field = null) 
 
 // Voucher
 function voucher_effective_status($voucher) {
-    if ($voucher->status == 'Active' && $voucher->valid_until < date('Y-m-d')) {
+    $today = date('Y-m-d');
+    if ($voucher->status == 'Active' && $voucher->valid_until < $today) {
         return 'Expired';
+    }
+    if ($voucher->status == 'Active' && $voucher->valid_from > $today) {
+        return 'Scheduled';
     }
     return $voucher->status;
 }

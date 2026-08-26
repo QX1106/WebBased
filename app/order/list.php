@@ -60,8 +60,6 @@ $statuses = ['Pending', 'Processing', 'Shipped', 'Completed', 'Cancelled'];
 
 $filter_qs = "&status=$status&search=$search&date_from=$date_from&date_to=$date_to";
 
-$pending_cancel_count = $pdo->query("SELECT COUNT(*) FROM cancel_request WHERE status = 'Pending'")->fetchColumn();
-
 ?>
 <?php require '../_head.php'; ?>
 
@@ -84,9 +82,6 @@ $pending_cancel_count = $pdo->query("SELECT COUNT(*) FROM cancel_request WHERE s
             <a href="export-pdf.php?<?= h(ltrim($filter_qs, '&')) ?>">Export as PDF</a>
         </div>
     </div>
-    <a href="/order/cancel-requests.php" class="btn-outline">
-        Cancellation Requests<?= $pending_cancel_count ? " ($pending_cancel_count pending)" : '' ?>
-    </a>
 </div>
 
 <p class="status-filter">
