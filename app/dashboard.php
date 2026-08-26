@@ -48,7 +48,4 @@ $order_stats = $pdo->query("SELECT
     <a href="/product/admin-draft.php">View Product Maintenance (Admin Draft)</a>
 </p>
 
-<h2>Report</h2>
-<p><a href="/report.php" class="btn-accent">View Full Report</a></p>
-
 <?php require '_foot.php'; ?>
