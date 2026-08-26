@@ -47,7 +47,7 @@ $pager = new SimplePager(
 
 <h1>My Orders</h1>
 
-<div>
+<div class="order-status-filter">
     <a href="?status="
        class="<?= $status === '' ? 'active' : '' ?>">
         All Active
@@ -181,7 +181,7 @@ $pager = new SimplePager(
 <?= $pager->links("&status=" . urlencode($status)) ?>
 
 <div class="order-history-link">
-    <a href="history.php">
+    <a href="../order/history.php">
         View Order History →
     </a>
 </div>

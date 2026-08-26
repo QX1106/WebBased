@@ -1374,6 +1374,24 @@ form.filter-form a {
     font-weight: bold;
 }
 
+.order-status-filter {
+    margin: 15px 0 25px;
+}
+
+.order-status-filter a {
+    color: #333;
+    text-decoration: none;
+    font-weight: normal;
+}
+
+.order-status-filter a.active {
+    font-weight: bold;
+}
+
+.order-status-filter span {
+    margin: 0 8px;
+}
+
 .order-section {
     border: 1px solid #ddd;
     padding: 20px;
@@ -1475,4 +1493,45 @@ form.filter-form a {
 
 .btn-checkout:hover {
     opacity: 0.85;
+}
+
+.order-product-preview {
+    display: grid;
+    grid-template-columns: 60px 1fr 60px;
+    gap: 15px;
+    align-items: center;
+    padding: 10px 0;
+}
+
+.order-product-image img {
+    width: 55px;
+    height: 55px;
+    object-fit: cover;
+}
+
+.order-product-name {
+    font-weight: 500;
+}
+
+.order-product-quantity {
+    text-align: right;
+}
+
+.more-items {
+    margin-top: 8px;
+    color: #777;
+    font-size: 14px;
+}
+
+.order-card-status {
+    font-weight: bold;
+}
+
+.back-orders {
+    margin-top: 25px;
+}
+
+.back-orders a {
+    color: #333;
+    text-decoration: none;
 }
