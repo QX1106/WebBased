@@ -331,8 +331,12 @@ function is_unique($table, $field, $value, $except_id = null, $id_field = null) 
 
 // Voucher
 function voucher_effective_status($voucher) {
-    if ($voucher->status == 'Active' && $voucher->valid_until < date('Y-m-d')) {
+    $today = date('Y-m-d');
+    if ($voucher->status == 'Active' && $voucher->valid_until < $today) {
         return 'Expired';
+    }
+    if ($voucher->status == 'Active' && $voucher->valid_from > $today) {
+        return 'Scheduled';
     }
     return $voucher->status;
 }
@@ -437,6 +441,8 @@ function export_table_pdf($title, $headers, $rows, $filename) {
 function build_order_receipt_pdf($order, $items) {
     require_once root('lib/TCPDF/tcpdf.php');
 
+    $shipping_address = $order->shipping_address ?: $order->address;
+
     $items_html = '';
     foreach ($items as $it) {
         $items_html .= '<tr>
@@ -469,7 +475,8 @@ function build_order_receipt_pdf($order, $items) {
     <div class="row"><span class="label">Customer</span> ' . h($order->username) . '</div>
     <div class="row"><span class="label">Email</span> ' . h($order->email) . '</div>
     <div class="row"><span class="label">Phone</span> ' . h($order->phone) . '</div>
-    <div class="row"><span class="label">Address</span> ' . h($order->address) . '</div>
+    <div class="row"><span class="label">Address</span> ' . h($shipping_address) . '</div>
+    <div class="row"><span class="label">Payment Method</span> ' . h($order->pay_name ?: 'Not specified') . '</div>
 
     <table>
         <tr><th>Item</th><th align="center">Qty</th><th align="right">Price</th><th align="right">Subtotal</th></tr>
@@ -498,3 +505,4 @@ function build_order_receipt_pdf($order, $items) {
 // PAGER
 // =========================================================
 require_once root('lib/SimplePager.php');
+

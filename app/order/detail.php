@@ -19,9 +19,10 @@ $transitions = [
     'Cancelled'  => [],
 ];
 
-$stm = $pdo->prepare("SELECT o.*, m.username, m.email, m.phone, m.address
+$stm = $pdo->prepare("SELECT o.*, m.username, m.email, m.phone, m.address, p.pay_name
                        FROM orders o
                        JOIN member m ON o.member_id = m.member_id
+                       LEFT JOIN payment p ON o.payment_id = p.pay_id
                        WHERE o.order_id = ?");
 $stm->execute([$id]);
 $order = $stm->fetch();
@@ -75,7 +76,15 @@ if (is_post()) {
         $stm = $pdo->prepare("INSERT INTO order_status_log (order_id, status, note) VALUES (?, ?, ?)");
         $stm->execute([$id, $new_status, $note]);
 
-        // Sync 
+        if ($new_status == 'Cancelled') {
+            send_email(
+                $order->email,
+                'Your Order Has Been Cancelled - Order #' . $order->order_id,
+                "<p>Hi {$order->username},</p><p>Your Order #{$order->order_id} has been cancelled.</p><p><b>Reason:</b> " . h($note) . "</p><p>If you have questions, please contact us.</p>"
+            );
+        }
+
+        // Sync
         $order->order_status = $new_status;
         $allowed_next = $transitions[$order->order_status] ?? [];
 
@@ -211,7 +220,17 @@ $cancel_other = $_err ? ($cancel_other ?? '') : '';
 <table class="detail no-print">
     <tr><th>Order Date</th><td><?= h($order->order_date) ?></td></tr>
     <tr><th>Member</th><td><?= h($order->username) ?> (<?= h($order->email) ?>) — <?= h($order->phone) ?></td></tr>
-    <tr><th>Address</th><td><?= h($order->address) ?></td></tr>
+    <tr>
+        <th>Shipping Address</th>
+        <td>
+            <?php if ($order->shipping_address): ?>
+                <?= h($order->shipping_address) ?>
+            <?php else: ?>
+                <?= h($order->address) ?> <span class="hint">(member's current profile address — this order was placed before shipping address snapshots were recorded)</span>
+            <?php endif; ?>
+        </td>
+    </tr>
+    <tr><th>Payment Method</th><td><?= $order->pay_name ? h($order->pay_name) : '—' ?></td></tr>
     <tr><th>Total</th><td>RM <?= number_format($order->total_amount, 2) ?></td></tr>
     <tr><th>Status</th><td id="order-status-cell"><?= h($order->order_status) ?></td></tr>
 </table>
