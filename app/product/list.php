@@ -1,5 +1,5 @@
 <?php require '../_base.php'; ?>
-<?php auth('Admin'); ?>
+<?php auth('Admin', 'Super Admin'); ?>
 <?php
 
 // Low-In-Stock Alert: flag any product at or below this quantity.

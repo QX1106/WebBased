@@ -39,7 +39,7 @@
 $_nav_categories = $pdo->query("SELECT id, name FROM category ORDER BY name")->fetchAll();
 ?>
 
-<?php if ($_user && in_array($_user->role, ['Admin', 'Super Admin'])): ?>
+<?php if (isset($_user) && $_user && in_array($_user->role, ['Admin', 'Super Admin'])): ?>
     <?php $_path = $_SERVER['REQUEST_URI']; ?>
     <?php $_is_super = $_user->role == 'Super Admin'; ?>
     <?php $_pending_cancel_requests = $pdo->query("SELECT COUNT(*) FROM cancel_request WHERE status = 'Pending'")->fetchColumn(); ?>
@@ -91,7 +91,7 @@ $_nav_categories = $pdo->query("SELECT id, name FROM category ORDER BY name")->f
     <nav>
         <a href="/">Stationary Online Store</a>
 
-        <?php if ($_user): ?>
+        <?php if (isset($_user) && $_user): ?>
             <?php if ($_user->role == 'Member'): ?>
                 <a href="/cart/index.php">Cart</a>
                 <a href="/cart/order.php">Orders</a>
