@@ -38,5 +38,12 @@ $stm = $pdo->prepare("
 
 $stm->execute([$order_id]);
 
+$stm = $pdo->prepare("
+    INSERT INTO order_status_log (order_id, status)
+    VALUES (?, 'Processing')
+");
+
+$stm->execute([$order_id]);
+
 temp('info', 'Payment Succesful. Order Created.');
 redirect("order-details.php?id=$order_id");
