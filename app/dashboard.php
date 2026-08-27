@@ -21,7 +21,6 @@ $order_stats = $pdo->query("SELECT
                  AND order_status = 'Completed' THEN total_amount ELSE 0 END) AS this_month_revenue
     FROM orders")->fetch();
 
-// 10 matches product/list.php's own LOW_STOCK_THRESHOLD
 $product_stats = $pdo->query("SELECT
         COUNT(*) AS total,
         SUM(stock_qty <= 10) AS low_stock,

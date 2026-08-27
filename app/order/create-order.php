@@ -198,10 +198,20 @@ if (isset($_SESSION['voucher_id'])) {
     }
 
 
-    if (
-        $today < $voucher->valid_from ||
-        $today > $voucher->valid_until
-    ) {
+    if ($today < $voucher->valid_from) {
+
+        unset($_SESSION['voucher_id']);
+
+        echo json_encode([
+            'success' => false,
+            'message' =>
+                'The applied voucher is not active yet.'
+        ]);
+
+        exit;
+    }
+
+    if ($today > $voucher->valid_until) {
 
         unset($_SESSION['voucher_id']);
 
