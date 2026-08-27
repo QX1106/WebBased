@@ -802,18 +802,15 @@ form.filter-form a {
 
 
 /* Cart item container */
-
 .cart-items {
     background: var(--panel);
     border: 1px solid var(--border);
 }
 
-
-/* Header */
 .cart-header {
     display: grid;
-    grid-template-columns: minmax(200px, 2fr) 90px 90px 90px 70px;
-    gap: 16px;
+    grid-template-columns: minmax(190px, 2fr) 120px 130px 120px;
+    gap: 20px;
     padding: 14px 18px;
     border-bottom: 1px solid var(--border);
     color: var(--muted);
@@ -823,12 +820,10 @@ form.filter-form a {
     letter-spacing: 0.04em;
 }
 
-
-/* Each cart row */
 .cart-item {
     display: grid;
-    grid-template-columns: minmax(200px, 2fr) 90px 90px 90px 70px;
-    gap: 16px;
+    grid-template-columns: minmax(190px, 2fr) 120px 130px 120px;
+    gap: 20px;
     align-items: center;
     padding: 18px;
     border-bottom: 1px solid var(--border);
@@ -890,6 +885,7 @@ form.filter-form a {
 /* Prices */
 .cart-price {
     font-size: 14px;
+    white-space: nowrap;
 }
 
 .cart-subtotal {
