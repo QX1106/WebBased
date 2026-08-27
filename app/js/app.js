@@ -53,11 +53,15 @@ $(function () {
     $(document).on('change', '#order_status, #cancel_reason', syncCancelReasonFields);
     syncCancelReasonFields();
 
-    // Update order status 
+    // Update order status
     $(document).on('submit', '#order-status-form', function (e) {
         e.preventDefault();
         const $form = $(this);
         const orderId = $form.closest('#order-update-section').data('order-id');
+        const $btn = $form.find('button[type="submit"]');
+        const originalText = $btn.text();
+
+        $btn.prop('disabled', true).text('Updating...');
 
         $.ajax({
             url: 'detail.php?id=' + orderId,
@@ -73,9 +77,11 @@ $(function () {
                 $.each(data.errors, function (key, msg) {
                     $('#err_' + key).text(msg).addClass('err');
                 });
+                $btn.prop('disabled', false).text(originalText);
             }
         }).fail(function () {
             alert('Could not update the order status. Please try again.');
+            $btn.prop('disabled', false).text(originalText);
         });
     });
 
