@@ -17,8 +17,13 @@ $order_stats = $pdo->query("SELECT
         COUNT(*) AS total,
         SUM(order_status = 'Pending') AS pending,
         SUM(MONTH(order_date) = MONTH(CURDATE()) AND YEAR(order_date) = YEAR(CURDATE())) AS this_month_count,
-        SUM(CASE WHEN MONTH(order_date) = MONTH(CURDATE()) AND YEAR(order_date) = YEAR(CURDATE())
-                 AND order_status = 'Completed' THEN total_amount ELSE 0 END) AS this_month_revenue
+        (SELECT COALESCE(SUM(o2.total_amount), 0)
+         FROM orders o2
+         JOIN order_status_log l ON l.order_id = o2.order_id AND l.status = 'Completed'
+         WHERE o2.order_status = 'Completed'
+           AND MONTH(l.changed_at) = MONTH(CURDATE())
+           AND YEAR(l.changed_at) = YEAR(CURDATE())
+        ) AS this_month_revenue
     FROM orders")->fetch();
 
 $product_stats = $pdo->query("SELECT
