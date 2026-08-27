@@ -151,6 +151,19 @@ $stm = $pdo->prepare("SELECT oi.*, p.name AS product_name
 $stm->execute([$id]);
 $items = $stm->fetchAll();
 
+$stm = $pdo->prepare("SELECT v.code
+                       FROM voucher_usage vu
+                       JOIN voucher v ON v.voucher_id = vu.voucher_id
+                       WHERE vu.order_id = ?");
+$stm->execute([$id]);
+$order_voucher = $stm->fetch();
+
+$items_subtotal = 0;
+foreach ($items as $it) {
+    $items_subtotal += $it->unit_price * $it->quantity;
+}
+$order_discount = $items_subtotal - $order->total_amount;
+
 // status timeline
 $stm = $pdo->prepare("SELECT * FROM order_status_log WHERE order_id = ? ORDER BY changed_at ASC");
 $stm->execute([$id]);
@@ -233,6 +246,10 @@ $cancel_other = $_err ? ($cancel_other ?? '') : '';
         </td>
     </tr>
     <tr><th>Payment Method</th><td><?= $order->pay_name ? h($order->pay_name) : '—' ?></td></tr>
+    <?php if ($order_voucher): ?>
+        <tr><th>Subtotal</th><td>RM <?= number_format($items_subtotal, 2) ?></td></tr>
+        <tr><th>Voucher</th><td><?= h($order_voucher->code) ?> (&minus;RM <?= number_format($order_discount, 2) ?>)</td></tr>
+    <?php endif; ?>
     <tr><th>Total</th><td>RM <?= number_format($order->total_amount, 2) ?></td></tr>
     <tr><th>Status</th><td id="order-status-cell"><?= h($order->order_status) ?></td></tr>
 </table>
