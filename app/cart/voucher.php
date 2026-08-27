@@ -52,10 +52,15 @@ if ($voucher->status !== 'Active') {
 // Date validation
 $today = date('Y-m-d');
 
-if (
-    $today < $voucher->valid_from ||
-    $today > $voucher->valid_until
-) {
+if ($today < $voucher->valid_from) {
+
+    unset($_SESSION['voucher_id']);
+
+    temp('info', 'This voucher is not active yet.');
+    redirect('index.php');
+}
+
+if ($today > $voucher->valid_until) {
 
     unset($_SESSION['voucher_id']);
 
