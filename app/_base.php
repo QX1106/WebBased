@@ -379,8 +379,11 @@ function voucher_effective_status($voucher) {
     return $voucher->status;
 }
 
-// Call when an order is cancelled — the discount was never actually
-// redeemed, so give the usage slot back.
+function generate_tracking_number() {
+    return 'JT' . str_pad((string) random_int(0, 999999999999), 12, '0', STR_PAD_LEFT);
+}
+
+// if order cancelled
 function release_voucher_usage($order_id) {
     global $pdo;
 
