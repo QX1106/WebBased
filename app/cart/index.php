@@ -227,9 +227,6 @@ require '../_head.php';
                         RM <?= number_format($item->price * $item->quantity, 2) ?>
                     </div>
             </div>
-<<<<<<< HEAD
-        <?php endforeach; ?>
-=======
 
             <div class="cart-product-info">
                 <a href="/product/details.php?id=<?= $item->product_id ?>">
@@ -268,7 +265,6 @@ require '../_head.php';
     </div>
 <?php endforeach; ?>
 
->>>>>>> b710e76a1be8c1dbede819f52c8e95277e963e10
     </div>
 
     <!-- RIGHT: INVOICE / CHECKOUT SUMMARY -->
