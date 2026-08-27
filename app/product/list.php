@@ -1,5 +1,5 @@
 <?php require '../_base.php'; ?>
-<?php auth('Admin'); ?>
+<?php auth('Admin', 'Super Admin'); ?>
 <?php
 
 // LOW_STOCK_THRESHOLD is defined in _base.php — shared with the sidebar alert badge.

@@ -39,6 +39,7 @@
 $_nav_categories = $pdo->query("SELECT id, name FROM category ORDER BY name")->fetchAll();
 ?>
 
+<<<<<<< HEAD
 <?php if ($_user && $_user->role == 'Admin'): ?>
     <?php
     $_path = $_SERVER['REQUEST_URI'];
@@ -46,6 +47,12 @@ $_nav_categories = $pdo->query("SELECT id, name FROM category ORDER BY name")->f
     $_low_stock_count = low_stock_count();
     $_pending_cancel_requests = $pdo->query("SELECT COUNT(*) FROM cancel_request WHERE status = 'Pending'")->fetchColumn();
     ?>
+=======
+<?php if (isset($_user) && $_user && in_array($_user->role, ['Admin', 'Super Admin'])): ?>
+    <?php $_path = $_SERVER['REQUEST_URI']; ?>
+    <?php $_is_super = $_user->role == 'Super Admin'; ?>
+    <?php $_pending_cancel_requests = $pdo->query("SELECT COUNT(*) FROM cancel_request WHERE status = 'Pending'")->fetchColumn(); ?>
+>>>>>>> 61100e8de8f9c443d0e13a2ecc6773cae30f943b
     <div class="admin-topbar">
         <button type="button" id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle sidebar">&#9776;</button>
     </div>
@@ -53,7 +60,12 @@ $_nav_categories = $pdo->query("SELECT id, name FROM category ORDER BY name")->f
         <aside class="sidebar">
             <a href="/" class="brand">Stationary Online Store</a>
             <nav>
-                <a href="/dashboard.php" class="<?= $_path == '/dashboard.php' ? 'active' : '' ?>">Dashboard</a>
+                <?php if ($_is_super): ?>
+                    <a href="/superadmin/dashboard.php" class="<?= $_path == '/superadmin/dashboard.php' ? 'active' : '' ?>">Dashboard</a>
+                    <a href="/superadmin/admins/list.php" class="<?= str_starts_with($_path, '/superadmin/admins') ? 'active' : '' ?>">Manage Admin Account</a>
+                <?php else: ?>
+                    <a href="/dashboard.php" class="<?= $_path == '/dashboard.php' ? 'active' : '' ?>">Dashboard</a>
+                <?php endif; ?>
                 <a href="/report.php" class="<?= $_path == '/report.php' ? 'active' : '' ?>">Report</a>
                 <a href="/member/list.php" class="<?= str_starts_with($_path, '/member') ? 'active' : '' ?>">Members</a>
                 <a href="/order/list.php" class="<?= str_starts_with($_path, '/order') && !str_starts_with($_path, '/order/cancel-request') ? 'active' : '' ?>">Orders</a>
@@ -65,10 +77,10 @@ $_nav_categories = $pdo->query("SELECT id, name FROM category ORDER BY name")->f
                     <?php endif; ?>
                 </a>
                 <a href="/voucher/list.php" class="<?= str_starts_with($_path, '/voucher') ? 'active' : '' ?>">Vouchers</a>
-                <a href="/admin/profile.php" class="<?= $_path == '/admin/profile.php' || $_path == '/admin/edit.php' || $_path == '/admin/password.php' ? 'active' : '' ?>">My Profile</a>
+                <a href="<?= $_is_super ? '/superadmin/profile.php' : '/admin/profile.php' ?>" class="<?= $_is_super ? (in_array($_path, ['/superadmin/profile.php', '/superadmin/edit.php', '/superadmin/password.php']) ? 'active' : '') : (in_array($_path, ['/admin/profile.php', '/admin/edit.php', '/admin/password.php']) ? 'active' : '') ?>">My Profile</a>
             </nav>
             <div class="sidebar-foot">
-                <a href="/admin/profile.php" class="user-chip" style="text-decoration:none;">
+                <a href="<?= $_is_super ? '/superadmin/profile.php' : '/admin/profile.php' ?>" class="user-chip" style="text-decoration:none;">
                     <?= user_avatar($_user, 32) ?>
                     <span><?= h($_user->username) ?> (<?= h($_user->role) ?>)</span>
                 </a>
@@ -94,10 +106,10 @@ $_nav_categories = $pdo->query("SELECT id, name FROM category ORDER BY name")->f
     <nav>
         <a href="/">Stationary Online Store</a>
 
-        <?php if ($_user): ?>
+        <?php if (isset($_user) && $_user): ?>
             <?php if ($_user->role == 'Member'): ?>
                 <a href="/cart/index.php">Cart</a>
-                <a href="/order/history.php">Orders</a>
+                <a href="/cart/order.php">Orders</a>
             <?php endif; ?>
             <span class="user-chip"><a href="/member/profile.php" style="display:flex;align-items:center;gap:8px;text-decoration:none;"><?= user_avatar($_user, 28) ?> <?= h($_user->username) ?> (<?= h($_user->role) ?>)</a></span>
             <a href="/user/logout.php">Logout</a>

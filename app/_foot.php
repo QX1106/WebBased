@@ -1,4 +1,4 @@
-<?php if ($_user && $_user->role == 'Admin'): ?>
+<?php if ($_user && in_array($_user->role, ['Admin', 'Super Admin'])): ?>
         </main>
     </div>
 <?php else: ?>

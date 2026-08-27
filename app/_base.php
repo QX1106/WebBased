@@ -307,6 +307,54 @@ function is_email($value) {
     return filter_var($value, FILTER_VALIDATE_EMAIL) !== false;
 }
 
+// Requires: 8+ characters, at least one uppercase letter, one number,
+// and one symbol.
+function is_strong_password($value) {
+    return strlen($value) >= 8
+        && preg_match('/[A-Z]/', $value)
+        && preg_match('/[0-9]/', $value)
+        && preg_match('/[^A-Za-z0-9]/', $value);
+}
+
+// =========================================================
+// LOGIN LOCKOUT (3 wrong attempts -> 30 second lock)
+// =========================================================
+const MAX_LOGIN_ATTEMPTS = 3;
+const LOGIN_LOCK_SECONDS = 30;
+
+function is_account_locked($member) {
+    return $member->locked_until && strtotime($member->locked_until) > time();
+}
+
+function login_lock_seconds_remaining($member) {
+    return max(0, strtotime($member->locked_until) - time());
+}
+
+// Call after a wrong password. Locks the account once attempts reach
+// MAX_LOGIN_ATTEMPTS, then resets the counter.
+function record_failed_login($member_id) {
+    global $pdo;
+
+    $pdo->prepare("UPDATE member SET failed_attempts = failed_attempts + 1 WHERE member_id = ?")
+        ->execute([$member_id]);
+
+    $stm = $pdo->prepare("SELECT failed_attempts FROM member WHERE member_id = ?");
+    $stm->execute([$member_id]);
+    $attempts = (int) $stm->fetchColumn();
+
+    if ($attempts >= MAX_LOGIN_ATTEMPTS) {
+        $pdo->prepare("UPDATE member SET locked_until = NOW() + INTERVAL " . LOGIN_LOCK_SECONDS . " SECOND, failed_attempts = 0 WHERE member_id = ?")
+            ->execute([$member_id]);
+    }
+}
+
+// Call after a successful login.
+function reset_login_attempts($member_id) {
+    global $pdo;
+    $pdo->prepare("UPDATE member SET failed_attempts = 0, locked_until = NULL WHERE member_id = ?")
+        ->execute([$member_id]);
+}
+
 function is_money($value) {
     return preg_match('/^\d+(\.\d{1,2})?$/', $value) === 1;
 }
