@@ -55,7 +55,13 @@ $_title = 'Product Maintenance';
     <?php foreach ($arr as $row): ?>
 
         <a href="/product/details.php?id=<?= $row->id ?>" class="product-card">
-
+            <button
+                type="button"
+                class="wishlist-toggle"
+                data-product-id="<?= $row->id ?>"
+            >
+                ♡
+            </button>
             <div class="product-image">
                 <?php if ($row->photo): ?>
                     <img
