@@ -121,23 +121,17 @@ $subtotal = (float)$stm->fetchColumn();
 
 // Minimum spending requirement
 if ($subtotal < $voucher->min_spend) {
-
     unset($_SESSION['voucher_id']);
-
     temp(
         'info',
         'Minimum spend of RM ' .
             number_format($voucher->min_spend, 2) .
             ' is required for this voucher.'
     );
-
     redirect('index.php');
 }
 
-
 // Voucher is valid
 $_SESSION['voucher_id'] = $voucher->voucher_id;
-
 temp('info', 'Voucher applied successfully.');
-
-redirect('cart.php');
+redirect('index.php');
