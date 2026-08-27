@@ -379,6 +379,21 @@ function voucher_effective_status($voucher) {
     return $voucher->status;
 }
 
+// Call when an order is cancelled — the discount was never actually
+// redeemed, so give the usage slot back.
+function release_voucher_usage($order_id) {
+    global $pdo;
+
+    $stm = $pdo->prepare("SELECT voucher_id FROM voucher_usage WHERE order_id = ?");
+    $stm->execute([$order_id]);
+    $usage = $stm->fetch();
+
+    if (!$usage) return;
+
+    $pdo->prepare("DELETE FROM voucher_usage WHERE order_id = ?")->execute([$order_id]);
+    $pdo->prepare("UPDATE voucher SET used_count = GREATEST(used_count - 1, 0) WHERE voucher_id = ?")->execute([$usage->voucher_id]);
+}
+
 function is_exists($table, $field, $value) {
     global $pdo;
     $stm = $pdo->prepare("SELECT COUNT(*) FROM `$table` WHERE `$field` = ?");

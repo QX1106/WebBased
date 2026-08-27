@@ -77,6 +77,8 @@ if (is_post()) {
         $stm->execute([$id, $new_status, $note]);
 
         if ($new_status == 'Cancelled') {
+            release_voucher_usage($id);
+
             send_email(
                 $order->email,
                 'Your Order Has Been Cancelled - Order #' . $order->order_id,
