@@ -40,16 +40,12 @@ $_nav_categories = $pdo->query("SELECT id, name FROM category ORDER BY name")->f
 ?>
 
 <?php if ($_user && $_user->role == 'Admin'): ?>
-<<<<<<< HEAD
     <?php
     $_path = $_SERVER['REQUEST_URI'];
     // Low-In-Stock Alert badge next to the Products nav item (hidden when nothing is low).
     $_low_stock_count = low_stock_count();
+    $_pending_cancel_requests = $pdo->query("SELECT COUNT(*) FROM cancel_request WHERE status = 'Pending'")->fetchColumn();
     ?>
-=======
-    <?php $_path = $_SERVER['REQUEST_URI']; ?>
-    <?php $_pending_cancel_requests = $pdo->query("SELECT COUNT(*) FROM cancel_request WHERE status = 'Pending'")->fetchColumn(); ?>
->>>>>>> 5ad71ea3e838f495b5d67399299e636353bcf3dd
     <div class="admin-topbar">
         <button type="button" id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle sidebar">&#9776;</button>
     </div>
@@ -60,19 +56,14 @@ $_nav_categories = $pdo->query("SELECT id, name FROM category ORDER BY name")->f
                 <a href="/dashboard.php" class="<?= $_path == '/dashboard.php' ? 'active' : '' ?>">Dashboard</a>
                 <a href="/report.php" class="<?= $_path == '/report.php' ? 'active' : '' ?>">Report</a>
                 <a href="/member/list.php" class="<?= str_starts_with($_path, '/member') ? 'active' : '' ?>">Members</a>
-<<<<<<< HEAD
-                <a href="/order/list.php" class="<?= str_starts_with($_path, '/order') ? 'active' : '' ?>">Orders</a>
+                <a href="/order/list.php" class="<?= str_starts_with($_path, '/order') && !str_starts_with($_path, '/order/cancel-request') ? 'active' : '' ?>">Orders</a>
+                <a href="/order/cancel-requests.php" class="<?= str_starts_with($_path, '/order/cancel-request') ? 'active' : '' ?>">Cancellation Requests<?= $_pending_cancel_requests ? " ($_pending_cancel_requests)" : '' ?></a>
                 <a href="/product/list.php" class="<?= str_starts_with($_path, '/product') ? 'active' : '' ?>">
                     Products
                     <?php if ($_low_stock_count > 0): ?>
                         <span class="nav-alert" title="<?= $_low_stock_count ?> product(s) at or below <?= LOW_STOCK_THRESHOLD ?> units">&#9888;</span>
                     <?php endif; ?>
                 </a>
-=======
-                <a href="/order/list.php" class="<?= str_starts_with($_path, '/order') && !str_starts_with($_path, '/order/cancel-request') ? 'active' : '' ?>">Orders</a>
-                <a href="/order/cancel-requests.php" class="<?= str_starts_with($_path, '/order/cancel-request') ? 'active' : '' ?>">Cancellation Requests<?= $_pending_cancel_requests ? " ($_pending_cancel_requests)" : '' ?></a>
-                <a href="/product/list.php" class="<?= str_starts_with($_path, '/product') ? 'active' : '' ?>">Products</a>
->>>>>>> 5ad71ea3e838f495b5d67399299e636353bcf3dd
                 <a href="/voucher/list.php" class="<?= str_starts_with($_path, '/voucher') ? 'active' : '' ?>">Vouchers</a>
                 <a href="/admin/profile.php" class="<?= $_path == '/admin/profile.php' || $_path == '/admin/edit.php' || $_path == '/admin/password.php' ? 'active' : '' ?>">My Profile</a>
             </nav>
