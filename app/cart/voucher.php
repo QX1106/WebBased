@@ -14,7 +14,7 @@ if ($code === '') {
     unset($_SESSION['voucher_id']);
 
     temp('info', 'Please enter a voucher code.');
-    redirect('cart.php');
+    redirect('index.php');
 }
 
 
@@ -35,7 +35,7 @@ if (!$voucher) {
     unset($_SESSION['voucher_id']);
 
     temp('info', 'Voucher does not exist.');
-    redirect('cart.php');
+    redirect('index.php');
 }
 
 
@@ -45,22 +45,27 @@ if ($voucher->status !== 'Active') {
     unset($_SESSION['voucher_id']);
 
     temp('info', 'This voucher is inactive.');
-    redirect('cart.php');
+    redirect('index.php');
 }
 
 
 // Date validation
 $today = date('Y-m-d');
 
-if (
-    $today < $voucher->valid_from ||
-    $today > $voucher->valid_until
-) {
+if ($today < $voucher->valid_from) {
+
+    unset($_SESSION['voucher_id']);
+
+    temp('info', 'This voucher is not active yet.');
+    redirect('index.php');
+}
+
+if ($today > $voucher->valid_until) {
 
     unset($_SESSION['voucher_id']);
 
     temp('info', 'Voucher has expired.');
-    redirect('cart.php');
+    redirect('index.php');
 }
 
 
@@ -73,7 +78,7 @@ if (
     unset($_SESSION['voucher_id']);
 
     temp('info', 'This voucher has reached its usage limit.');
-    redirect('cart.php');
+    redirect('index.php');
 }
 
 
@@ -97,7 +102,7 @@ if ($voucher->one_per_member) {
         unset($_SESSION['voucher_id']);
 
         temp('info', 'You have already used this voucher.');
-        redirect('cart.php');
+        redirect('index.php');
     }
 }
 
@@ -128,7 +133,7 @@ if ($subtotal < $voucher->min_spend) {
         ' is required for this voucher.'
     );
 
-    redirect('cart.php');
+    redirect('index.php');
 }
 
 
@@ -137,4 +142,4 @@ $_SESSION['voucher_id'] = $voucher->voucher_id;
 
 temp('info', 'Voucher applied successfully.');
 
-redirect('cart.php');
+redirect('index.php');

@@ -171,16 +171,9 @@ $pager = new SimplePager(
 
 <?php if ($pager->item_count == 0): ?>
 
-<<<<<<< HEAD
-    <div class="empty-cart">
-        <h2>No Orders Found</h2>
-        <p></p>
-        <a href="../product/list.php" class="btn-accent">Continue Shopping</a>
-=======
     <div class="empty-orders">
         <p>You currently have no active orders.</p>
-        <a href="../index.php">Continue Shopping</a>
->>>>>>> b710e76a1be8c1dbede819f52c8e95277e963e10
+        <a href="../index.php" class="btn-accent">Continue Shopping</a>
     </div>
 
 <?php endif; ?>
