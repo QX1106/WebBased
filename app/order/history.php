@@ -223,8 +223,10 @@ $pager = new SimplePager(
 
     <?php if ($pager->item_count == 0): ?>
 
-        <div class="empty-orders">
-            <p>No orders found.</p>
+        <div class="empty-cart">
+            <h2>No orders found.</h2>
+            <p></p>
+            <a href="../index.php" class="btn-accent">Continue Shopping</a>
         </div>
 
     <?php endif; ?>
