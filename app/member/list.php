@@ -44,7 +44,7 @@ $pager = new SimplePager($pdo, $query, $params, 10, $page);
             <a href="export-pdf.php?search=<?= urlencode($search) ?>">Export as PDF</a>
         </div>
     </div>
-    <a href="login_log.php" class="btn-accent">View Login Log</a>
+    <a href="login-log.php" class="btn-accent">View Login Log</a>
 </div>
 
 <p><?= $pager->item_count ?> member(s) found. Page <?= $pager->page ?> of <?= $pager->page_count ?>.</p>

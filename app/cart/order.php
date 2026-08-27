@@ -173,7 +173,7 @@ $pager = new SimplePager(
 
     <div class="empty-orders">
         <p>You currently have no active orders.</p>
-        <a href="../product/list.php">Continue Shopping</a>
+        <a href="../index.php">Continue Shopping</a>
     </div>
 
 <?php endif; ?>

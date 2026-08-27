@@ -43,7 +43,7 @@ $filter_qs = "&search=" . urlencode($search) . "&role=" . urlencode($role);
     <?= html_search('search', "placeholder='Search username or email'") ?>
     <input type="hidden" name="role" value="<?= h($role) ?>">
     <button type="submit">Search</button>
-    <a href="login_log.php" class="btn-outline">Reset</a>
+    <a href="login-log.php" class="btn-outline">Reset</a>
 </form>
 
 <p class="status-filter">
