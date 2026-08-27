@@ -1479,7 +1479,6 @@ form.filter-form a {
     background: #333;
     color: white;
     padding: 10px 18px;
-    border-radius: 5px;
 }
 
 .btn-checkout:hover {
@@ -1547,4 +1546,173 @@ button.remove-voucher-link {
 button.remove-voucher-link:hover {
     background: transparent;
     color: var(--accent);
+}
+
+.order-detail-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-top: 20px;
+}
+
+.pending-order-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+}
+
+.btn-checkout,
+.btn-cancel-order {
+    box-sizing: border-box;
+    width: 220px;
+    text-align: center;
+}
+
+.btn-cancel-order {
+    padding: 10px 16px;
+    margin: 0;
+    background: transparent;
+    border: 1px solid #333;
+    color: #333;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Cancellation Request                                                   */
+/* ---------------------------------------------------------------------- */
+
+.cancel-request-page {
+    max-width: 100%;
+    margin: 40px auto 70px;
+}
+
+.cancel-request-header {
+    margin-bottom: 25px;
+}
+
+.cancel-request-header h1 {
+    margin: 0 0 5px;
+}
+
+.cancel-request-header p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+
+/* Main form */
+
+.cancel-request-box {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 32px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+}
+
+.cancel-request-box form {
+    width: 100%;
+    max-width: none;
+}
+
+.cancel-field {
+    width: 100%;
+    margin-bottom: 26px;
+}
+
+.cancel-field textarea {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 180px;
+    padding: 14px 16px;
+    resize: vertical;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--ink);
+    font: inherit;
+    line-height: 1.5;
+}
+
+.cancel-request-description {
+    margin: 0 0 28px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    line-height: 1.6;
+}
+
+.cancel-field label {
+    display: block;
+    margin-bottom: 9px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.cancel-field .optional {
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.cancel-field textarea:focus {
+    outline: none;
+    border-color: var(--ink);
+}
+
+/* Photo */
+
+.cancel-field input[type="file"] {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+}
+
+.cancel-field small {
+    display: block;
+    margin-top: 7px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+/* Bottom actions */
+
+.cancel-request-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 30px;
+    padding-top: 22px;
+    border-top: 1px solid var(--border);
+}
+
+.cancel-back {
+    color: var(--ink);
+    text-decoration: none;
+}
+
+.cancel-back:hover {
+    color: var(--accent);
+}
+
+button.submit-cancel-request {
+    width: auto;
+    height: auto;
+    margin: 0;
+    padding: 11px 22px;
+    border: 1px solid var(--ink);
+    background: var(--ink);
+    color: var(--bg);
+    cursor: pointer;
+}
+
+button.submit-cancel-request:hover {
+    opacity: 0.9;
 }

@@ -106,14 +106,12 @@ if (isset($_SESSION['voucher_id'])) {
                 ) {
                     $discount = $voucher->max_discount;
                 }
-            }
-            elseif ($voucher->discount_type === 'Fixed') {
+            } elseif ($voucher->discount_type === 'Fixed') {
                 $discount = $voucher->discount_value;
             }
 
             $discount = min($discount, $subtotal);
-        }
-        else {
+        } else {
             unset($_SESSION['voucher_id']);
             $voucher_removed = true;
         }
