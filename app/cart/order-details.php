@@ -198,6 +198,15 @@ $cancel_request = $stm->fetch();
                     ) ?>
                 </span>
             </div>
+
+            <?php if ($order->tracking_number): ?>
+                <div class="order-info-row">
+                    <span>Tracking Number</span>
+                    <span>
+                        <?= h($order->tracking_number) ?>
+                    </span>
+                </div>
+            <?php endif; ?>
         </div>
 
         <!-- Order Summary -->

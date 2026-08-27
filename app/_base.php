@@ -379,6 +379,24 @@ function voucher_effective_status($voucher) {
     return $voucher->status;
 }
 
+function generate_tracking_number() {
+    return 'JT' . str_pad((string) random_int(0, 999999999999), 12, '0', STR_PAD_LEFT);
+}
+
+// if order cancelled
+function release_voucher_usage($order_id) {
+    global $pdo;
+
+    $stm = $pdo->prepare("SELECT voucher_id FROM voucher_usage WHERE order_id = ?");
+    $stm->execute([$order_id]);
+    $usage = $stm->fetch();
+
+    if (!$usage) return;
+
+    $pdo->prepare("DELETE FROM voucher_usage WHERE order_id = ?")->execute([$order_id]);
+    $pdo->prepare("UPDATE voucher SET used_count = GREATEST(used_count - 1, 0) WHERE voucher_id = ?")->execute([$usage->voucher_id]);
+}
+
 function is_exists($table, $field, $value) {
     global $pdo;
     $stm = $pdo->prepare("SELECT COUNT(*) FROM `$table` WHERE `$field` = ?");
@@ -478,17 +496,34 @@ function export_table_pdf($title, $headers, $rows, $filename) {
 // PDF
 function build_order_receipt_pdf($order, $items) {
     require_once root('lib/TCPDF/tcpdf.php');
+    global $pdo;
 
     $shipping_address = $order->shipping_address ?: $order->address;
 
     $items_html = '';
+    $items_subtotal = 0;
     foreach ($items as $it) {
+        $items_subtotal += $it->unit_price * $it->quantity;
         $items_html .= '<tr>
             <td>' . h($it->product_name) . '</td>
             <td align="center">' . h($it->quantity) . '</td>
             <td align="right">RM ' . number_format($it->unit_price, 2) . '</td>
             <td align="right">RM ' . number_format($it->unit_price * $it->quantity, 2) . '</td>
         </tr>';
+    }
+
+    $stm = $pdo->prepare("SELECT v.code
+                           FROM voucher_usage vu
+                           JOIN voucher v ON v.voucher_id = vu.voucher_id
+                           WHERE vu.order_id = ?");
+    $stm->execute([$order->order_id]);
+    $order_voucher = $stm->fetch();
+    $order_discount = $items_subtotal - $order->total_amount;
+
+    $summary_html = '';
+    if ($order_voucher) {
+        $summary_html .= '<div class="row"><span class="label">Subtotal</span> RM ' . number_format($items_subtotal, 2) . '</div>';
+        $summary_html .= '<div class="row"><span class="label">Voucher (' . h($order_voucher->code) . ')</span> -RM ' . number_format($order_discount, 2) . '</div>';
     }
 
     $html = '
@@ -521,6 +556,8 @@ function build_order_receipt_pdf($order, $items) {
         ' . $items_html . '
     </table>
 
+    <br>
+    ' . $summary_html . '
     <div class="total">Total: RM ' . number_format($order->total_amount, 2) . '</div>
 
     <div class="footer">Thank you for shopping with us!</div>

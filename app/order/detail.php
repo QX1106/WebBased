@@ -70,13 +70,22 @@ if (is_post()) {
     }
 
     if (!$_err) {
-        $stm = $pdo->prepare("UPDATE orders SET order_status = ? WHERE order_id = ?");
-        $stm->execute([$new_status, $id]);
+        $tracking_number = $order->tracking_number;
+        if ($new_status == 'Shipped') {
+            $tracking_number = generate_tracking_number();
+            $pdo->prepare("UPDATE orders SET order_status = ?, tracking_number = ? WHERE order_id = ?")
+                ->execute([$new_status, $tracking_number, $id]);
+        } else {
+            $pdo->prepare("UPDATE orders SET order_status = ? WHERE order_id = ?")
+                ->execute([$new_status, $id]);
+        }
 
         $stm = $pdo->prepare("INSERT INTO order_status_log (order_id, status, note) VALUES (?, ?, ?)");
         $stm->execute([$id, $new_status, $note]);
 
         if ($new_status == 'Cancelled') {
+            release_voucher_usage($id);
+
             send_email(
                 $order->email,
                 'Your Order Has Been Cancelled - Order #' . $order->order_id,
@@ -86,6 +95,7 @@ if (is_post()) {
 
         // Sync
         $order->order_status = $new_status;
+        $order->tracking_number = $tracking_number;
         $allowed_next = $transitions[$order->order_status] ?? [];
 
         if (!is_ajax()) {
@@ -135,7 +145,7 @@ function render_timeline_html($timeline) {
         <li class="<?= h($t['state']) ?>">
             <b><?= h($t['label']) ?></b>
             <span><?= $t['time'] ? h($t['time']) : 'Not yet' ?></span>
-            <?php if ($t['note']): ?><div class="timeline-note">Reason: <?= h($t['note']) ?></div><?php endif; ?>
+            <?php if ($t['note']): ?><div class="timeline-note"><?= h($t['note']) ?></div><?php endif; ?>
         </li>
 <?php
     endforeach;
@@ -148,6 +158,19 @@ $stm = $pdo->prepare("SELECT oi.*, p.name AS product_name
                        WHERE oi.order_id = ?");
 $stm->execute([$id]);
 $items = $stm->fetchAll();
+
+$stm = $pdo->prepare("SELECT v.code
+                       FROM voucher_usage vu
+                       JOIN voucher v ON v.voucher_id = vu.voucher_id
+                       WHERE vu.order_id = ?");
+$stm->execute([$id]);
+$order_voucher = $stm->fetch();
+
+$items_subtotal = 0;
+foreach ($items as $it) {
+    $items_subtotal += $it->unit_price * $it->quantity;
+}
+$order_discount = $items_subtotal - $order->total_amount;
 
 // status timeline
 $stm = $pdo->prepare("SELECT * FROM order_status_log WHERE order_id = ? ORDER BY changed_at ASC");
@@ -162,7 +185,7 @@ $cancelled_note = null;
 foreach ($log as $l) {
     if ($l->status == 'Cancelled') {
         $cancelled_at = $l->changed_at;
-        $cancelled_note = $l->note;
+        $cancelled_note = 'Reason: ' . $l->note;
     } else {
         $reached[$l->status] = $l->changed_at;
     }
@@ -172,7 +195,8 @@ $timeline = [];
 foreach ($sequence as $key => $label) {
     if (isset($reached[$key])) {
         $state = ($key == $order->order_status) ? 'current' : 'done';
-        $timeline[] = ['label' => $label, 'time' => $reached[$key], 'state' => $state, 'note' => null];
+        $timeline_note = ($key == 'Shipped' && $order->tracking_number) ? 'Tracking #: ' . $order->tracking_number : null;
+        $timeline[] = ['label' => $label, 'time' => $reached[$key], 'state' => $state, 'note' => $timeline_note];
     } elseif ($cancelled_at === null) {
         $timeline[] = ['label' => $label, 'time' => null, 'state' => 'future', 'note' => null];
     } else {
@@ -231,8 +255,15 @@ $cancel_other = $_err ? ($cancel_other ?? '') : '';
         </td>
     </tr>
     <tr><th>Payment Method</th><td><?= $order->pay_name ? h($order->pay_name) : '—' ?></td></tr>
+    <?php if ($order_voucher): ?>
+        <tr><th>Subtotal</th><td>RM <?= number_format($items_subtotal, 2) ?></td></tr>
+        <tr><th>Voucher</th><td><?= h($order_voucher->code) ?> (&minus;RM <?= number_format($order_discount, 2) ?>)</td></tr>
+    <?php endif; ?>
     <tr><th>Total</th><td>RM <?= number_format($order->total_amount, 2) ?></td></tr>
     <tr><th>Status</th><td id="order-status-cell"><?= h($order->order_status) ?></td></tr>
+    <?php if ($order->tracking_number): ?>
+        <tr><th>Tracking Number</th><td><?= h($order->tracking_number) ?></td></tr>
+    <?php endif; ?>
 </table>
 
 <h2 class="no-print">Items</h2>

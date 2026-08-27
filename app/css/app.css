@@ -178,6 +178,8 @@ button {
 button:hover { background: #000; border-color: #000; }
 button[type=reset] { background: transparent; color: var(--ink); border-color: var(--border); margin-left: 8px; }
 button[type=reset]:hover { border-color: var(--ink); }
+button:disabled { opacity: 0.6; cursor: not-allowed; }
+button:disabled:hover { background: var(--ink); border-color: var(--ink); }
 
 button.btn-danger { background: var(--danger); border-color: var(--danger); }
 button.btn-danger:hover { background: #8f371f; border-color: #8f371f; }
