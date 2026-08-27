@@ -13,7 +13,7 @@ $pending_cancel_request = $stm->fetch();
 
 $transitions = [
     'Pending'    => ['Processing', 'Cancelled'],
-    'Processing' => ['Shipped', 'Cancelled'],
+    'Processing' => ['Shipped'],
     'Shipped'    => ['Completed'],
     'Completed'  => [],
     'Cancelled'  => [],
