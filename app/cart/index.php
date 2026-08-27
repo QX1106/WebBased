@@ -227,7 +227,48 @@ require '../_head.php';
                         RM <?= number_format($item->price * $item->quantity, 2) ?>
                     </div>
             </div>
+<<<<<<< HEAD
         <?php endforeach; ?>
+=======
+
+            <div class="cart-product-info">
+                <a href="/product/details.php?id=<?= $item->product_id ?>">
+                    <?= h($item->name) ?>
+                </a>
+                <?php if ($item->stock_qty <= 5): ?>
+                    <small>
+                        Only <?= $item->stock_qty ?> left
+                    </small>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Price -->
+        <div class="cart-price">
+            RM <?= number_format($item->price, 2) ?>
+        </div>
+
+        <!-- Quantity -->
+        <div class="cart-quantity" data-product-id="<?= $item->product_id ?>">
+            <button type="button" class="qty-button qty-decrease">−</button>
+            <span class="qty-value"><?= $item->quantity ?></span>
+            <button
+                type="button"
+                class="qty-button qty-increase"
+                <?= $item->quantity >= $item->stock_qty ? 'disabled' : '' ?>
+            >
+                +
+            </button>
+        </div>
+
+        <!-- Item subtotal -->
+        <div class="cart-subtotal" data-product-id="<?= $item->product_id ?>">
+            RM <?= number_format($item->price * $item->quantity, 2) ?>
+        </div>
+    </div>
+<?php endforeach; ?>
+
+>>>>>>> b710e76a1be8c1dbede819f52c8e95277e963e10
     </div>
 
     <!-- RIGHT: INVOICE / CHECKOUT SUMMARY -->

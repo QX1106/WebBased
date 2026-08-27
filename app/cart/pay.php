@@ -6,7 +6,7 @@ $member_id = $_user->member_id;
 $order_id = post('order_id');
 
 if (!$order_id) {
-    redirect('orders.php');
+    redirect('order.php');
 }
 
 // Make sure the order belongs to the logged-in member
@@ -21,22 +21,22 @@ $stm->execute([$order_id, $member_id]);
 $order = $stm->fetch();
 
 if (!$order) {
-    redirect('orders.php');
+    redirect('order.php');
 }
 
 // Only allow pending orders to be paid
-if ($order->order_status !== 'pending') {
-    redirect("order_details.php?id=$order_id");
+if ($order->order_status !== 'Pending') {
+    redirect("order-details.php?id=$order_id");
 }
 
 // For now, simulate successful payment
 $stm = $pdo->prepare("
     UPDATE orders
-    SET order_status = 'processing'
+    SET order_status = 'Processing'
     WHERE order_id = ?
 ");
 
 $stm->execute([$order_id]);
 
 temp('info', 'Payment Succesful. Order Created.');
-redirect("order_details.php?id=$order_id");
+redirect("order-details.php?id=$order_id");
