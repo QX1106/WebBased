@@ -39,20 +39,11 @@
 $_nav_categories = $pdo->query("SELECT id, name FROM category ORDER BY name")->fetchAll();
 ?>
 
-<<<<<<< HEAD
-<?php if ($_user && $_user->role == 'Admin'): ?>
-    <?php
-    $_path = $_SERVER['REQUEST_URI'];
-    // Low-In-Stock Alert badge next to the Products nav item (hidden when nothing is low).
-    $_low_stock_count = low_stock_count();
-    $_pending_cancel_requests = $pdo->query("SELECT COUNT(*) FROM cancel_request WHERE status = 'Pending'")->fetchColumn();
-    ?>
-=======
 <?php if (isset($_user) && $_user && in_array($_user->role, ['Admin', 'Super Admin'])): ?>
     <?php $_path = $_SERVER['REQUEST_URI']; ?>
     <?php $_is_super = $_user->role == 'Super Admin'; ?>
     <?php $_pending_cancel_requests = $pdo->query("SELECT COUNT(*) FROM cancel_request WHERE status = 'Pending'")->fetchColumn(); ?>
->>>>>>> 61100e8de8f9c443d0e13a2ecc6773cae30f943b
+    <?php $_low_stock_count = low_stock_count(); ?>
     <div class="admin-topbar">
         <button type="button" id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle sidebar">&#9776;</button>
     </div>
