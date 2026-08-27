@@ -51,8 +51,7 @@ if ($action === 'increase') {
         $item->quantity + 1,
         $item->stock_qty
     );
-}
-elseif ($action === 'decrease') {
+} elseif ($action === 'decrease') {
     $new_qty = max(
         $item->quantity - 1,
         1
@@ -167,9 +166,7 @@ if (isset($_SESSION['voucher_id'])) {
                     $discount =
                         $voucher->max_discount;
                 }
-
-            }
-            elseif (
+            } elseif (
                 $voucher->discount_type === 'Fixed'
             ) {
 
@@ -181,8 +178,7 @@ if (isset($_SESSION['voucher_id'])) {
                 $discount,
                 $subtotal
             );
-        }
-        else {
+        } else {
 
             unset($_SESSION['voucher_id']);
 
@@ -238,5 +234,5 @@ echo json_encode([
     'voucher_removed' => $voucher_removed,
 
     'maxed_out' =>
-        $new_qty >= $item->stock_qty
+    $new_qty >= $item->stock_qty
 ]);

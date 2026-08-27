@@ -124,8 +124,8 @@ if ($subtotal < $voucher->min_spend) {
     temp(
         'info',
         'Minimum spend of RM ' .
-        number_format($voucher->min_spend, 2) .
-        ' is required for this voucher.'
+            number_format($voucher->min_spend, 2) .
+            ' is required for this voucher.'
     );
 
     redirect('cart.php');
