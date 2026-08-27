@@ -71,11 +71,92 @@ if ($cart) {
 }
 
 // Calculate total
-$total = 0;
+$subtotal = 0;
 
 foreach ($items as $item) {
-    $total += $item->price * $item->quantity;
+    $subtotal += $item->price * $item->quantity;
 }
+
+$voucher = null;
+$discount = 0;
+
+// Check whether a voucher has already been applied
+if (isset($_SESSION['voucher_id'])) {
+
+    $stm = $pdo->prepare("
+        SELECT *
+        FROM voucher
+        WHERE voucher_id = ?
+    ");
+
+    $stm->execute([$_SESSION['voucher_id']]);
+    $voucher = $stm->fetch();
+
+    if ($voucher) {
+
+        $today = date('Y-m-d');
+
+        $valid =
+            $voucher->status === 'Active' &&
+            $today >= $voucher->valid_from &&
+            $today <= $voucher->valid_until &&
+            $subtotal >= $voucher->min_spend &&
+            (
+                $voucher->max_uses === null ||
+                $voucher->used_count < $voucher->max_uses
+            );
+
+        // One voucher use per member
+        if ($valid && $voucher->one_per_member) {
+
+            $stm = $pdo->prepare("
+                SELECT COUNT(*)
+                FROM voucher_usage
+                WHERE voucher_id = ?
+                AND member_id = ?
+            ");
+
+            $stm->execute([
+                $voucher->voucher_id,
+                $member_id
+            ]);
+
+            if ($stm->fetchColumn() > 0) {
+                $valid = false;
+            }
+        }
+
+        if ($valid) {
+
+            if ($voucher->discount_type === 'Percentage') {
+                $discount =
+                    $subtotal *
+                    ($voucher->discount_value / 100);
+
+                if (
+                    $voucher->max_discount !== null &&
+                    $discount > $voucher->max_discount
+                ) {
+                    $discount = $voucher->max_discount;
+                }
+
+            }
+            elseif ($voucher->discount_type === 'Fixed') {
+                $discount = $voucher->discount_value;
+            }
+
+            // Total must never become negative
+            $discount = min($discount, $subtotal);
+        }
+        else {
+            unset($_SESSION['voucher_id']);
+            $voucher = null;
+            $discount = 0;
+        }
+    }
+}
+
+$total = $subtotal - $discount;
 
 $_title = 'Shopping Cart';
 
@@ -85,7 +166,6 @@ require '../_head.php';
 <h1>Shopping Cart</h1>
 
 <?php if ($items): ?>
-
 <div class="cart-page">
     <!-- LEFT: CART ITEMS -->
     <div class="cart-items" style="min-width: 600px;">
@@ -99,25 +179,60 @@ require '../_head.php';
         </div>
 
         <?php foreach ($items as $item): ?>
-    <div class="cart-item" data-row-product-id="<?= $item->product_id ?>">
+            <div class="cart-item" data-row-product-id="<?= $item->product_id ?>">
 
-        <!-- Product -->
-        <div class="cart-product">
-            <div class="cart-product-image">
-                <?php if ($item->photo): ?>
-                    <img
-                        src="/photos/<?= h($item->photo) ?>"
-                        alt="<?= h($item->name) ?>"
-                    >
-                <?php else: ?>
-                    <div class="no-photo">
-                        No Photo
+            <!-- Product -->
+                <div class="cart-product">
+                    <div class="cart-product-image">
+                        <?php if ($item->photo): ?>
+                            <img
+                                src="/photos/<?= h($item->photo) ?>"
+                                alt="<?= h($item->name) ?>"
+                            >
+                        <?php else: ?>
+                            <div class="no-photo">
+                                No Photo
+                            </div>
+                        <?php endif; ?>
                     </div>
-                <?php endif; ?>
+                </div>
+
+                <div class="cart-product-info">
+                    <a href="/product/view.php?id=<?= $item->product_id ?>">
+                        <?= h($item->name) ?>
+                    </a>
+                    <?php if ($item->stock_qty <= 5): ?>
+                        <small>Only <?= $item->stock_qty ?> left</small>
+                    <?php endif; ?>
+                </div>
+
+            <!-- Price -->
+                    <div class="cart-price">
+                        RM <?= number_format($item->price, 2) ?>
+                    </div>
+
+            <!-- Quantity -->
+                <div class="cart-quantity" data-product-id="<?= $item->product_id ?>">
+                    <button type="button" class="qty-button qty-decrease">−</button>
+                    <span class="qty-value"><?= $item->quantity ?></span>
+                    <button
+                        type="button"
+                        class="qty-button qty-increase"
+                        <?= $item->quantity >= $item->stock_qty ? 'disabled' : '' ?>
+                    >+</button>
+                </div>
+
+            <!-- Item subtotal -->
+                    <div class="cart-subtotal" data-product-id="<?= $item->product_id ?>">
+                        RM <?= number_format($item->price * $item->quantity, 2) ?>
+                    </div>
             </div>
+<<<<<<< HEAD
+        <?php endforeach; ?>
+=======
 
             <div class="cart-product-info">
-                <a href="/product/view.php?id=<?= $item->product_id ?>">
+                <a href="/product/details.php?id=<?= $item->product_id ?>">
                     <?= h($item->name) ?>
                 </a>
                 <?php if ($item->stock_qty <= 5): ?>
@@ -153,6 +268,7 @@ require '../_head.php';
     </div>
 <?php endforeach; ?>
 
+>>>>>>> b710e76a1be8c1dbede819f52c8e95277e963e10
     </div>
 
     <!-- RIGHT: INVOICE / CHECKOUT SUMMARY -->
@@ -161,26 +277,24 @@ require '../_head.php';
         <div class="summary-row">
             <span>Subtotal</span>
             <span id="cart-subtotal">
-                RM <?= number_format($total, 2) ?>
+                RM <?= number_format($subtotal, 2) ?>
             </span>
         </div>
 
-        <!-- Voucher placeholder -->
+        <!-- Voucher -->
         <div class="summary-section">
             <label>Voucher</label>
+            <form method="post" action="voucher.php">
             <div class="voucher-box">
                 <input
                     type="text"
+                    name="voucher_code"
                     placeholder="Enter voucher code"
-                    disabled
+                    value="<?= $voucher ? h($voucher->code) : '' ?>"
                 >
-                <button type="button" disabled>
-                    Apply
-                </button>
+                <button type="submit">Apply</button>
             </div>
-            <small>
-                Voucher feature will be available during checkout.
-            </small>
+            </form>
         </div>
 
         <!-- Address-->
@@ -194,7 +308,6 @@ require '../_head.php';
             <label>Payment Method</label>
             <select name="pay_id" required>
                 <option value="" disabled selected>Select Payment Method</option>
-
                 <?php foreach ($payment_methods as $payment): ?>
                     <option value="<?= $payment->pay_id ?>">
                         <?= htmlspecialchars($payment->pay_name) ?>
@@ -202,28 +315,29 @@ require '../_head.php';
                 <?php endforeach ?>
             </select>
         </div>
-        <div class="summary-divider"></div>
+
+        <?php if ($voucher && $discount > 0): ?>
+            <div class="summary-divider"></div>
+            <div class="summary-row" id="voucher-discount-row">
+                <span>Voucher Discount<small>(<?= h($voucher->code) ?>)</small></span>
+                <span id="voucher-discount">- RM <?= number_format($discount, 2) ?></span>
+            </div>
+        <?php endif; ?>
 
         <div class="summary-total">
             <span>Total</span>
-            <strong>
-                RM <?= number_format($total, 2) ?>
-            </strong>
+            <strong id="cart-total">RM <?= number_format($total, 2) ?></strong>
         </div>
 
-        <button type="button" id="checkout-btn" class="checkout-button">Proceed to Checkout</button>
+        <button type="button" id="checkout-btn" class="checkout-pay-button">Proceed to Checkout</button>
     </aside>
 </div>
 
 <?php else: ?>
     <div class="empty-cart">
         <h2>Your cart is empty</h2>
-        <p>
-            Looks like you haven't added anything yet.
-        </p>
-        <a href="../index.php" class="btn-accent">
-            Continue Shopping
-        </a>
+        <p>Looks like you haven't added anything yet.</p>
+        <a href="../index.php" class="btn-accent">Continue Shopping</a>
     </div>
 
 <?php endif; ?>
@@ -248,24 +362,100 @@ require '../_head.php';
             var productId = wrap.dataset.productId;
             var action = btn.classList.contains('qty-increase') ? 'increase' : 'decrease';
 
-            postJSON('quantity.php', { product_id: productId, action: action })
-                .then(function (data) {
-                    if (!data.success) {
-                        alert(data.message || 'Something went wrong.');
-                        return;
-                    }
+            postJSON(
+    'quantity.php',
+    {
+        product_id: productId,
+        action: action
+    }
+)
+.then(function (data) {
 
-                    wrap.querySelector('.qty-value').textContent = data.quantity;
-                    wrap.querySelector('.qty-increase').disabled = data.maxed_out;
+    if (!data.success) {
+        alert(
+            data.message ||
+            'Something went wrong.'
+        );
+        return;
+    }
 
-                    var subtotalEl = document.querySelector('.cart-subtotal[data-product-id="' + productId + '"]');
-                    if (subtotalEl) subtotalEl.textContent = 'RM ' + data.subtotal;
+    wrap.querySelector(
+        '.qty-value'
+    ).textContent = data.quantity;
 
-                    var cartSubtotalEl = document.getElementById('cart-subtotal');
-                    if (cartSubtotalEl) cartSubtotalEl.textContent = 'RM ' + data.total;
+    wrap.querySelector(
+        '.qty-increase'
+    ).disabled = data.maxed_out;
 
-                    var totalEl = document.getElementById('cart-total');
-                    if (totalEl) totalEl.textContent = 'RM ' + data.total;
+
+    var subtotalEl =
+        document.querySelector(
+            '.cart-subtotal[data-product-id="' +
+            productId +
+            '"]'
+        );
+
+    if (subtotalEl) {
+        subtotalEl.textContent =
+            'RM ' + data.item_subtotal;
+    }
+
+
+    var cartSubtotalEl =
+        document.getElementById(
+            'cart-subtotal'
+        );
+
+    if (cartSubtotalEl) {
+        cartSubtotalEl.textContent =
+            'RM ' + data.subtotal;
+    }
+
+
+    var discountEl =
+        document.getElementById(
+            'voucher-discount'
+        );
+
+    if (discountEl) {
+        discountEl.textContent =
+            '- RM ' + data.discount;
+    }
+
+
+    var totalEl =
+        document.getElementById(
+            'cart-total'
+        );
+
+    if (totalEl) {
+        totalEl.textContent =
+            'RM ' + data.total;
+    }
+
+
+    if (data.voucher_removed) {
+
+        var voucherRow =
+            document.getElementById(
+                'voucher-discount-row'
+            );
+
+        if (voucherRow) {
+            voucherRow.remove();
+        }
+
+        alert(
+            'Voucher removed because ' +
+            'the requirements are no longer met.'
+        );
+    }
+});
+
+if (discountEl) {
+    discountEl.textContent =
+        '- RM ' + data.discount;
+}
                 })
             });
     });
@@ -340,8 +530,6 @@ if (checkoutBtn) {
             });
     });
 }
-
-})();
 </script>
 
 <?php require '../_foot.php'; ?>

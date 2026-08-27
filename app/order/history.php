@@ -195,7 +195,7 @@ $pager = new SimplePager(
                         <?php if ($o->order_status === 'Pending'): ?>
 
                             <a
-                                href="checkout.php?order_id=<?= $o->order_id ?>"
+                                href="../cart/checkout.php?order_id=<?= $o->order_id ?>"
                                 class="btn-pay"
                             >
                                 Proceed to Payment
@@ -223,8 +223,10 @@ $pager = new SimplePager(
 
     <?php if ($pager->item_count == 0): ?>
 
-        <div class="empty-orders">
-            <p>No orders found.</p>
+        <div class="empty-cart">
+            <h2>No orders found.</h2>
+            <p></p>
+            <a href="../index.php" class="btn-accent">Continue Shopping</a>
         </div>
 
     <?php endif; ?>
@@ -236,7 +238,7 @@ $pager = new SimplePager(
 
 
     <div class="back-orders">
-        <a href="list.php">
+        <a href="../cart/order.php">
             ← Back to Active Orders
         </a>
     </div>

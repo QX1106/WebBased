@@ -886,18 +886,13 @@ form.filter-form a {
 /* Header */
 .cart-header {
     display: grid;
-    grid-template-columns: minmax(200px, 2fr) 90px 140px 110px 70px;
+    grid-template-columns: minmax(200px, 2fr) 90px 90px 90px 70px;
     gap: 16px;
-
     padding: 14px 18px;
-
     border-bottom: 1px solid var(--border);
-
     color: var(--muted);
-
     font-size: 12px;
     font-weight: 500;
-
     text-transform: uppercase;
     letter-spacing: 0.04em;
 }
@@ -906,20 +901,16 @@ form.filter-form a {
 /* Each cart row */
 .cart-item {
     display: grid;
-    grid-template-columns: minmax(200px, 2fr) 90px 140px 110px 70px;
+    grid-template-columns: minmax(200px, 2fr) 90px 90px 90px 70px;
     gap: 16px;
-
     align-items: center;
-
     padding: 18px;
-
     border-bottom: 1px solid var(--border);
 }
 
 .cart-item:last-child {
     border-bottom: none;
 }
-
 
 /* Product */
 .cart-product {
@@ -931,11 +922,8 @@ form.filter-form a {
 .cart-product-image {
     width: 85px;
     height: 85px;
-
     flex-shrink: 0;
-
     background: var(--bg);
-
     overflow: hidden;
 }
 
@@ -958,7 +946,6 @@ form.filter-form a {
 .cart-product-info {
     display: flex;
     flex-direction: column;
-    gap: 5px;
 }
 
 .cart-product-info a {
@@ -1121,56 +1108,68 @@ form.filter-form a {
 
 .voucher-box input {
     flex: 1;
-
     min-width: 0;
-
     border-right: none;
 }
 
 .voucher-box button {
     padding: 10px 14px;
-
     white-space: nowrap;
 }
 
 .summary-section small {
     display: block;
-
     color: var(--muted);
-
     margin-top: 6px;
-
     font-size: 11px;
 }
 
+#voucher-discount-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    padding: 14px 0;
+    margin: 0;
+    font-size: 15px;
+}
+
+#voucher-discount-row small {
+    display: block;
+    margin-top: 3px;
+    font-size: 12px;
+    color: #888;
+}
+
+#voucher-discount-row span:first-child {
+    flex: 1;
+}
+
+#voucher-discount {
+    white-space: nowrap;
+    font-weight: 600;
+    text-align: right;
+}
 
 /* Payment method */
 
-.payment-placeholder {
+.payment {
     padding: 12px;
-
     background: var(--bg);
-
     border: 1px solid var(--border);
-
     color: var(--muted);
-
     font-size: 13px;
 }
 
-
 .summary-divider {
     border-top: 1px solid var(--border);
-
     margin: 24px 0 18px;
 }
-
 
 .summary-total {
     display: flex;
     justify-content: space-between;
     align-items: center;
-
     margin-bottom: 20px;
 }
 
@@ -1180,9 +1179,7 @@ form.filter-form a {
 
 .summary-total strong {
     color: var(--accent);
-
     font-family: 'Playfair Display', serif;
-
     font-size: 24px;
 }
 
@@ -1191,11 +1188,8 @@ form.filter-form a {
 
 .empty-cart {
     padding: 60px 20px;
-
     background: var(--panel);
-
     border: 1px solid var(--border);
-
     text-align: center;
 }
 
@@ -1205,7 +1199,6 @@ form.filter-form a {
 
 .empty-cart p {
     color: var(--muted);
-
     margin-bottom: 24px;
 }
 
