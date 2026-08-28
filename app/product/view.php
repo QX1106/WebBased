@@ -44,56 +44,19 @@ foreach ($all_photos as $ph) {
 }
 
 
-$cost_history_stm = $pdo->prepare("SELECT cost_price, effective_from FROM product_cost_history
-                                    WHERE product_id = ? ORDER BY effective_from ASC, id ASC");
-$cost_history_stm->execute([$id]);
-$cost_history = $cost_history_stm->fetchAll();
+// ---- Cost vs. Selling Price margin (this product's own fields only) -------
+$margin_amount = $product->price - $product->cost_price;
+$margin_percent = $product->price > 0 ? ($margin_amount / $product->price) * 100 : 0;
+$cost_bar_percent = $product->price > 0 ? min(100, ($product->cost_price / $product->price) * 100) : 0;
 
-function cost_price_on($cost_history, $date, $fallback) {
-    $applicable = $fallback;
-    foreach ($cost_history as $h) {
-        if ($h->effective_from > $date) {
-            break;
-        }
-        $applicable = $h->cost_price;
-    }
-    return (float) $applicable;
-}
-
-$sales_stm = $pdo->prepare("SELECT oi.quantity, oi.unit_price, o.order_date
-                             FROM order_item oi
-                             JOIN orders o ON o.order_id = oi.order_id
-                             WHERE oi.product_id = ? AND o.order_status = 'Completed'
-                             ORDER BY o.order_date");
-$sales_stm->execute([$id]);
-$sales_rows = $sales_stm->fetchAll();
-$has_sales = count($sales_rows) > 0;
-
-$months = [];
-for ($i = 5; $i >= 0; $i--) {
-    $months[date('Y-m', strtotime("-$i months"))] = ['sell' => 0.0, 'cost' => 0.0];
-}
-
-foreach ($sales_rows as $row) {
-    $order_date = date('Y-m-d', strtotime($row->order_date));
-    $ym = substr($order_date, 0, 7);
-    if (!array_key_exists($ym, $months)) {
-        continue;
-    }
-    $unit_cost = cost_price_on($cost_history, $order_date, $product->cost_price);
-    $months[$ym]['sell'] += $row->quantity * $row->unit_price;
-    $months[$ym]['cost'] += $row->quantity * $unit_cost;
-}
-
-$chart_labels = [];
-$chart_sell = [];
-$chart_cost = [];
-foreach ($months as $ym => $vals) {
-    $chart_labels[] = date('M', strtotime($ym . '-01'));
-    $chart_sell[] = round($vals['sell'], 2);
-    $chart_cost[] = round($vals['cost'], 2);
-}
-$total_margin = array_sum($chart_sell) - array_sum($chart_cost);
+// ---- More in this category --------------------------------------------
+$related_stm = $pdo->prepare("SELECT id, name, photo, price
+                               FROM product
+                               WHERE category_id = ? AND id != ?
+                               ORDER BY name
+                               LIMIT 4");
+$related_stm->execute([$product->category_id, $id]);
+$related_products = $related_stm->fetchAll();
 
 $_title = 'Product Detail';
 require '../_head.php';
@@ -163,79 +126,56 @@ require '../_head.php';
 </div>
 </div>
 
-<section class="sales-panel">
-    <div class="sales-panel-head">
-        <div>
-            <h2>Sales Performance</h2>
-            <p class="hint">Monthly sell price vs. cost — the shaded gap is margin</p>
+<section class="margin-panel">
+    <h2>Cost vs. Selling Price</h2>
+    <p class="hint">Per-unit price breakdown for this product</p>
+
+    <div class="price-bars">
+        <div class="price-row">
+            <span class="price-row-label">Sell Price</span>
+            <div class="price-bar-track">
+                <div class="price-bar price-bar--price" style="width:100%"></div>
+            </div>
+            <span class="price-row-value">RM <?= number_format($product->price, 2) ?></span>
         </div>
-        <?php if ($has_sales): ?>
-        <div class="margin-total">
-            <span>Margin (6&nbsp;mo)</span>
-            <b>RM <?= number_format($total_margin, 2) ?></b>
+        <div class="price-row">
+            <span class="price-row-label">Cost</span>
+            <div class="price-bar-track">
+                <div class="price-bar price-bar--cost" style="width:<?= $cost_bar_percent ?>%"></div>
+            </div>
+            <span class="price-row-value">RM <?= number_format($product->cost_price, 2) ?></span>
         </div>
-        <?php endif; ?>
     </div>
 
-    <?php if ($has_sales): ?>
-    <div class="chart-wrap">
-        <canvas id="sales-chart" height="90"></canvas>
+    <div class="margin-stat">
+        <span class="label">Margin</span>
+        <b>RM <?= number_format($margin_amount, 2) ?> <small>(<?= number_format($margin_percent, 1) ?>%)</small></b>
     </div>
-    <?php else: ?>
-    <p class="hint">No sales recorded yet for this product.</p>
-    <?php endif; ?>
 </section>
 
-<?php if ($has_sales): ?>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script>
-new Chart(document.getElementById('sales-chart'), {
-    type: 'line',
-    data: {
-        labels: <?= json_encode($chart_labels) ?>,
-        datasets: [
-            {
-                label: 'Cost (RM)',
-                data: <?= json_encode($chart_cost) ?>,
-                borderColor: '#5b7d8c',
-                backgroundColor: '#5b7d8c',
-                borderWidth: 2,
-                pointRadius: 3,
-                tension: 0,
-                fill: false
-            },
-            {
-                label: 'Sell Price (RM)',
-                data: <?= json_encode($chart_sell) ?>,
-                borderColor: '#c98a5e',
-                backgroundColor: 'rgba(122, 155, 113, 0.18)',
-                borderWidth: 2,
-                pointRadius: 3,
-                pointBackgroundColor: '#c98a5e',
-                tension: 0,
-                fill: '-1'
-            }
-        ]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            legend: { position: 'bottom' },
-            tooltip: {
-                callbacks: {
-                    label: (ctx) => ctx.dataset.label + ': RM ' + ctx.parsed.y.toLocaleString(undefined, {minimumFractionDigits: 2})
-                }
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: { callback: (v) => 'RM ' + v.toLocaleString() }
-            }
-        }
-    }
-});
-</script>
+<?php if ($related_products): ?>
+<section class="related-panel">
+    <h2>More in <?= h($product->category_name) ?></h2>
+    <p class="hint">Other products in the same category</p>
+
+    <div class="related-grid">
+        <?php foreach ($related_products as $rp): ?>
+        <a class="related-card" href="/product/view.php?id=<?= $rp->id ?>">
+            <div class="related-thumb">
+                <?php if ($rp->photo): ?>
+                    <img src="/photos/<?= h($rp->photo) ?>" alt="">
+                <?php else: ?>
+                    <span class="no-photo">No Photo</span>
+                <?php endif; ?>
+            </div>
+            <div class="related-card-body">
+                <div class="related-name"><?= h($rp->name) ?></div>
+                <div class="related-price">RM <?= number_format($rp->price, 2) ?></div>
+            </div>
+        </a>
+        <?php endforeach; ?>
+    </div>
+</section>
 <?php endif; ?>
 
 <?php if (count($slides) > 1): ?>
