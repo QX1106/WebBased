@@ -114,7 +114,7 @@ require '../_head.php';
             <td>Max Discount (RM)</td>
             <td>
                 <?= html_number('max_discount', 0.01, '', 0.01) ?> <?= err('max_discount') ?>
-                <p class="hint">Only used for Percentage vouchers — caps how much a single order can save. Leave blank for no cap.</p>
+                <p class="hint">Only applies to Percentage vouchers. Sets the maximum RM a customer can save on one order — leave blank for no limit.</p>
             </td>
         </tr>
         <tr>
@@ -122,7 +122,7 @@ require '../_head.php';
             <td><?= html_number('min_spend', 0, '', 0.01) ?> <?= err('min_spend') ?></td>
         </tr>
         <tr>
-            <td>Max Uses (Total)</td>
+            <td>Total Usage Limit</td>
             <td>
                 <?= html_number('max_uses', 1, '', 1) ?> <?= err('max_uses') ?>
                 <p class="hint">Leave blank for unlimited uses.</p>
