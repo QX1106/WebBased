@@ -21,6 +21,14 @@ $buy_now = $buy_now_mode
     ? $_SESSION['buy_now']
     : null;
 
+$address_session_key = $buy_now_mode
+    ? 'buy_now_address'
+    : 'cart_address';
+
+$payment_session_key = $buy_now_mode
+    ? 'buy_now_payment_id'
+    : 'cart_payment_id';
+
 // Get this member's address
 $stm = $pdo->prepare("
     SELECT address
@@ -29,7 +37,9 @@ $stm = $pdo->prepare("
 ");
 
 $stm->execute([$member_id]);
-$address = $stm->fetchColumn();
+$default_address = $stm->fetchColumn();
+$address = $_SESSION[$address_session_key]
+    ?? $default_address;
 
 // Get payment method
 $stm = $pdo->query("
@@ -38,6 +48,9 @@ $stm = $pdo->query("
 ");
 
 $payment_methods = $stm->fetchAll();
+$selected_payment_id =
+    $_SESSION[$payment_session_key]
+    ?? '';
 
 $items = [];
 $cart = null;
@@ -357,19 +370,33 @@ require '../_head.php';
             <!-- Address-->
             <div class="summary-section">
                 <label>Address</label>
-                <textarea id="shipping-address"><?= $address ?></textarea>
+                <textarea id="shipping-address"><?= h($address) ?></textarea>
             </div>
 
             <!-- Payment method -->
             <div class="summary-section">
                 <label>Payment Method</label>
-                <select name="pay_id" required>
-                    <option value="" disabled selected>Select Payment Method</option>
+                <select
+                    name="pay_id"
+                    id="payment-method"
+                    required>
+                    <option
+                        value=""
+                        disabled
+                        <?= $selected_payment_id === '' ? 'selected' : '' ?>>
+                        Select Payment Method
+                    </option>
+
                     <?php foreach ($payment_methods as $payment): ?>
-                        <option value="<?= $payment->pay_id ?>">
-                            <?= htmlspecialchars($payment->pay_name) ?>
+                        <option
+                            value="<?= $payment->pay_id ?>"
+                            <?= (string)$selected_payment_id === (string)$payment->pay_id
+                                ? 'selected'
+                                : ''
+                            ?>>
+                            <?= h($payment->pay_name) ?>
                         </option>
-                    <?php endforeach ?>
+                    <?php endforeach; ?>
                 </select>
             </div>
 
@@ -725,10 +752,7 @@ require '../_head.php';
 
                                 shipping_address: shippingAddress,
 
-                                mode: '<?= $buy_now_mode
-                                            ? 'buy_now'
-                                            : 'cart'
-                                        ?>'
+                                mode: '<?= $buy_now_mode ? 'buy_now' : 'cart' ?>'
                             }
                         )
                         .then(function(data) {
@@ -766,6 +790,63 @@ require '../_head.php';
 
                             checkoutBtn.textContent =
                                 'Proceed to Checkout';
+                        });
+                }
+            );
+        }
+
+        function saveCheckoutDetails() {
+            var address =
+                document
+                .getElementById('shipping-address')
+                .value;
+
+            var payment =
+                document
+                .getElementById('payment-method')
+                .value;
+
+            return postJSON(
+                'save-checkout-details.php', {
+                    shipping_address: address,
+                    pay_id: payment,
+                    mode: '<?= $buy_now_mode ? 'buy_now' : 'cart' ?>'
+                }
+            );
+        }
+
+        // Save when address changes
+        document
+            .getElementById('shipping-address')
+            .addEventListener(
+                'change',
+                saveCheckoutDetails
+            );
+
+        // Save when payment method changes
+        document
+            .getElementById('payment-method')
+            .addEventListener(
+                'change',
+                saveCheckoutDetails
+            );
+
+
+        // Save checkout details before applying voucher
+        var voucherForm =
+            document.getElementById('voucher-form');
+
+        if (voucherForm) {
+
+            voucherForm.addEventListener(
+                'submit',
+                function(e) {
+
+                    e.preventDefault();
+
+                    saveCheckoutDetails()
+                        .then(function() {
+                            voucherForm.submit();
                         });
                 }
             );
