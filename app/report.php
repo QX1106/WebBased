@@ -66,7 +66,7 @@ require '_head.php';
 
 <p class="status-filter">
     <?php foreach (['3' => '3 Months', '6' => '6 Months', '12' => '12 Months', 'weekly' => 'Weekly'] as $val => $label): ?>
-        <a href="?range=<?= $val ?>#revenue-trend" class="<?= $range === $val ? 'active' : '' ?>"><?= h($label) ?></a>
+        <a href="?range=<?= $val ?>#revenue-trend" class="<?= $range === (string) $val ? 'active' : '' ?>"><?= h($label) ?></a>
     <?php endforeach; ?>
 </p>
 
