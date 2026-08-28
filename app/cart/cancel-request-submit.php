@@ -32,7 +32,7 @@ $order = $stm->fetch();
 
 if (!$order) {
     temp('info', 'This order cannot be cancelled.');
-    redirect('list.php');
+    redirect('order.php');
 }
 
 
@@ -52,7 +52,7 @@ $stm->execute([
 
 if ($stm->fetchColumn() > 0) {
     temp('info', 'You already have a pending cancellation request for this order.');
-    redirect("detail.php?id=$order_id");
+    redirect("order-details.php?id=$order_id");
 }
 
 // Photo not handled yet

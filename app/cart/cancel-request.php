@@ -7,7 +7,7 @@ $member_id = $_user->member_id;
 $order_id = (int) get('order_id');
 
 if (!$order_id) {
-    redirect('list.php');
+    redirect('order.php');
 }
 
 // Make sure this order belongs to this member
@@ -29,7 +29,7 @@ $order = $stm->fetch();
 
 if (!$order) {
     temp('info', 'This order cannot be cancelled.');
-    redirect('list.php');
+    redirect('order.php');
 }
 
 // Check whether there is already an active cancellation request
@@ -50,7 +50,7 @@ $existing_request = $stm->fetch();
 
 if ($existing_request) {
     temp('info', 'A cancellation request has already been submitted for this order.');
-    redirect("detail.php?id=$order_id");
+    redirect("order-details.php?id=$order_id");
 }
 ?>
 
@@ -98,7 +98,7 @@ if ($existing_request) {
             </div>
 
             <div class="cancel-request-actions">
-                <a href="detail.php?id=<?= $order->order_id ?>" class="cancel-back">← Back to Order</a>
+                <a href="order-details.php?id=<?= $order->order_id ?>" class="cancel-back">← Back to Order</a>
                 <button type="submit" class="submit-cancel-request">Submit Request</button>
             </div>
         </form>
