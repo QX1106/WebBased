@@ -31,7 +31,7 @@ $stm = $pdo->prepare("
     FROM cart_item ci
     JOIN product p ON p.id = ci.product_id
     WHERE ci.cart_id = ?
-      AND ci.product_id = ?
+    AND ci.product_id = ?
 ");
 $stm->execute([$cart->id, $product_id]);
 $item = $stm->fetch();
@@ -51,8 +51,7 @@ if ($action === 'increase') {
         $item->quantity + 1,
         $item->stock_qty
     );
-}
-elseif ($action === 'decrease') {
+} elseif ($action === 'decrease') {
     $new_qty = max(
         $item->quantity - 1,
         1
@@ -73,7 +72,6 @@ $stm = $pdo->prepare("
 ");
 $stm->execute([$cart->id]);
 
-
 // =========================
 // Recalculate cart subtotal
 // =========================
@@ -88,7 +86,6 @@ $stm = $pdo->prepare("
 $stm->execute([$cart->id]);
 
 $subtotal = (float)($stm->fetch()->subtotal ?? 0);
-
 
 // =========================
 // Recalculate voucher
@@ -138,7 +135,7 @@ if (isset($_SESSION['voucher_id'])) {
                 SELECT COUNT(*)
                 FROM voucher_usage
                 WHERE voucher_id = ?
-                  AND member_id = ?
+                AND member_id = ?
             ");
 
             $stm->execute([
@@ -169,9 +166,7 @@ if (isset($_SESSION['voucher_id'])) {
                     $discount =
                         $voucher->max_discount;
                 }
-
-            }
-            elseif (
+            } elseif (
                 $voucher->discount_type === 'Fixed'
             ) {
 
@@ -183,8 +178,7 @@ if (isset($_SESSION['voucher_id'])) {
                 $discount,
                 $subtotal
             );
-        }
-        else {
+        } else {
 
             unset($_SESSION['voucher_id']);
 
@@ -240,5 +234,5 @@ echo json_encode([
     'voucher_removed' => $voucher_removed,
 
     'maxed_out' =>
-        $new_qty >= $item->stock_qty
+    $new_qty >= $item->stock_qty
 ]);

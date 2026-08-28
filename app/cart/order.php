@@ -49,7 +49,7 @@ $pager = new SimplePager(
 
 <div class="order-status-filter">
     <a href="?status="
-       class="<?= $status === '' ? 'active' : '' ?>">
+        class="<?= $status === '' ? 'active' : '' ?>">
         All Active
     </a>
 
@@ -57,7 +57,7 @@ $pager = new SimplePager(
         <span>|</span>
 
         <a href="?status=<?= urlencode($s) ?>"
-           class="<?= $status === $s ? 'active' : '' ?>">
+            class="<?= $status === $s ? 'active' : '' ?>">
             <?= h($s) ?>
         </a>
     <?php endforeach; ?>
@@ -66,13 +66,11 @@ $pager = new SimplePager(
 <p><?= $pager->item_count ?> active order(s).</p>
 
 <div class="order-list">
-
     <?php foreach ($pager->result as $o): ?>
-
         <?php
         // Get a few products for preview
         $stm = $pdo->prepare("
-            SELECT 
+            SELECT
                 oi.quantity,
                 oi.unit_price,
                 p.name
@@ -88,43 +86,31 @@ $pager = new SimplePager(
         ?>
 
         <div class="order-card">
-
             <div class="order-card-header">
                 <div>
                     <div class="order-number">
                         Order #<?= h($o->order_id) ?>
                     </div>
-
                     <div class="order-date">
                         <?= date('d M Y', strtotime($o->order_date)) ?>
                     </div>
                 </div>
-
                 <span class="order-status status-<?= strtolower($o->order_status) ?>">
                     <?= h($o->order_status) ?>
                 </span>
             </div>
 
             <div class="order-products">
-
                 <?php foreach ($items as $item): ?>
                     <div class="order-product-row">
 
-                        <span>
-                            <?= h($item->name) ?>
-                        </span>
-
-                        <span>
-                            x<?= h($item->quantity) ?>
-                        </span>
-
+                        <span><?= h($item->name) ?></span>
+                        <span>x<?= h($item->quantity) ?></span>
                     </div>
                 <?php endforeach; ?>
-
             </div>
 
             <div class="order-card-footer">
-
                 <div class="order-total">
                     Total:
                     <strong>
@@ -133,56 +119,22 @@ $pager = new SimplePager(
                 </div>
 
                 <div class="order-actions">
-
-                    <?php if ($o->order_status === 'Pending'): ?>
-
-                        <form method="post"
-                              action="pay.php"
-                              style="display:inline;">
-
-                            <input
-                                type="hidden"
-                                name="order_id"
-                                value="<?= $o->order_id ?>"
-                            >
-
-                            <button type="submit" class="btn-pay">
-                                Pay Now
-                            </button>
-
-                        </form>
-
-                    <?php endif; ?>
-
                     <a href="order-details.php?id=<?= $o->order_id ?>"
-                    class="btn-details">
+                        class="btn-details">
                         View Details
                     </a>
-
                 </div>
-
             </div>
-
         </div>
-
     <?php endforeach; ?>
-
 </div>
 
 <?php if ($pager->item_count == 0): ?>
-
-<<<<<<< HEAD
     <div class="empty-cart">
         <h2>No Orders Found</h2>
         <p></p>
-        <a href="../product/list.php" class="btn-accent">Continue Shopping</a>
-=======
-    <div class="empty-orders">
-        <p>You currently have no active orders.</p>
-        <a href="../index.php">Continue Shopping</a>
->>>>>>> b710e76a1be8c1dbede819f52c8e95277e963e10
+        <a href="../index.php" class="btn-accent">Continue Shopping</a>
     </div>
-
 <?php endif; ?>
 
 <?= $pager->links("&status=" . urlencode($status)) ?>

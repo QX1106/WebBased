@@ -38,6 +38,8 @@ if (is_post() && $req->status == 'Pending') {
         $pdo->prepare("INSERT INTO order_status_log (order_id, status, note) VALUES (?, 'Cancelled', ?)")
             ->execute([$req->order_id, 'Approved cancellation request — ' . $req->reason]);
 
+        release_voucher_usage($req->order_id);
+
         send_email(
             $req->email,
             'Your Cancellation Request Was Approved - Order #' . $req->order_id,
