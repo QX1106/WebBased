@@ -1,12 +1,18 @@
 $(function () {
 
-    // Confirm dialog 
+    // Confirm dialog
     $('[data-confirm]').on('click', function (e) {
         const text = $(this).data('confirm') || 'Are you sure?';
         if (!confirm(text)) {
             e.preventDefault();
             e.stopImmediatePropagation();
         }
+    });
+
+    // loading
+    $(document).on('submit', '.js-submit-loading', function () {
+        const $btn = $(this).find('button[type="submit"], button:not([type])');
+        $btn.prop('disabled', true).text('Processing...');
     });
 
     // Export dropdown 
