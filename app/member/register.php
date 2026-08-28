@@ -120,11 +120,23 @@ if (is_post()) {
 
     <label for="password">Password</label>
     <?= err('password') ?>
-    <?= html_password('password', "maxlength='100' placeholder='8+ chars, 1 uppercase, 1 number, 1 symbol'") ?>
+    <div class="pw-field">
+        <?= html_password('password', "maxlength='100' placeholder='Enter password'") ?>
+        <button type="button" class="toggle-pw" data-target="password" tabindex="-1"></button>
+    </div>
+    <ul class="pw-requirements">
+        <li>At least 8 characters</li>
+        <li>One uppercase letter</li>
+        <li>One number</li>
+        <li>One symbol (e.g. ! @ # $ %)</li>
+    </ul>
 
     <label for="confirm">Confirm Password</label>
     <?= err('confirm') ?>
-    <?= html_password('confirm', "maxlength='100' placeholder='Re-enter your password'") ?>
+    <div class="pw-field">
+        <?= html_password('confirm', "maxlength='100' placeholder='Re-enter your password'") ?>
+        <button type="button" class="toggle-pw" data-target="confirm" tabindex="-1"></button>
+    </div>
 
     <label for="phone">Phone</label>
     <?= err('phone') ?>
