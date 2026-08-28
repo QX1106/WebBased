@@ -8,6 +8,8 @@ $member_id = $_user->member_id;
 $code = trim(post('voucher_code'));
 $mode = post('mode', 'cart');
 
+$buy_now_mode = $mode === 'buy_now';
+
 $return_url = $buy_now_mode
     ? 'index.php?mode=buy_now'
     : 'index.php?mode=cart';
@@ -15,8 +17,6 @@ $return_url = $buy_now_mode
 // ----------------------------------------------------------------------
 // Determine Mode
 // ----------------------------------------------------------------------
-
-$buy_now_mode = $mode === 'buy_now';
 
 // Use a different voucher session depending on mode
 $voucher_session_key = $buy_now_mode
