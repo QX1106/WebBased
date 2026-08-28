@@ -190,15 +190,6 @@ $cancel_request = $stm->fetch();
                 </span>
             </div>
 
-            <div class="order-info-row">
-                <span>Payment Method</span>
-                <span>
-                    <?= h(
-                        $order->pay_name ?? '-'
-                    ) ?>
-                </span>
-            </div>
-
             <?php if ($order->tracking_number): ?>
                 <div class="order-info-row">
                     <span>Tracking Number</span>
@@ -214,7 +205,7 @@ $cancel_request = $stm->fetch();
             <h2>Order Summary</h2>
 
             <!-- Subtotal -->
-            <div class="summary-row">
+            <div class="order-info-row">
                 <span>Subtotal</span>
                 <span>
                     RM <?= number_format(
@@ -226,7 +217,7 @@ $cancel_request = $stm->fetch();
 
             <!-- Voucher Discount -->
             <?php if ($discount > 0): ?>
-                <div class="summary-row">
+                <div class="order-info-row">
                     <span>Voucher Discount</span>
                     <span>
                         - RM <?= number_format(
@@ -238,12 +229,21 @@ $cancel_request = $stm->fetch();
             <?php endif; ?>
 
             <!-- Total -->
-            <div class="summary-row summary-total">
+            <div class="order-info-row summary-total">
                 <span>Total</span>
                 <span>
                     RM <?= number_format(
                         $order->total_amount,
                         2
+                    ) ?>
+                </span>
+            </div>
+
+            <div class="summary-row">
+                <span>Payment Method</span>
+                <span>
+                    <?= h(
+                        $order->pay_name ?? '-'
                     ) ?>
                 </span>
             </div>
