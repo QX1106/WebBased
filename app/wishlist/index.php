@@ -66,7 +66,7 @@ require '../_head.php';
                 </div>
 
 
-                <a href="/product/view.php?id=<?= $item->product_id ?>">
+                <a href="/product/details.php?id=<?= $item->product_id ?>">
 
                     <div class="product-image">
 
