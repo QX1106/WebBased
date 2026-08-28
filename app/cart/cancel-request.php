@@ -97,24 +97,6 @@ if ($existing_request) {
                 ></textarea>
             </div>
 
-            <div class="cancel-field">
-                <label for="photo">
-                    Supporting Photo
-                    <span class="optional">(Optional)</span>
-                </label>
-
-                <input
-                    type="file"
-                    id="photo"
-                    name="photo"
-                    accept="image/*"
-                >
-
-                <small>
-                    You may attach a photo to support your cancellation request.
-                </small>
-            </div>
-
             <div class="cancel-request-actions">
                 <a href="order-details.php?id=<?= $order->order_id ?>" class="cancel-back">← Back to Order</a>
                 <button type="submit" class="submit-cancel-request">Submit Request</button>

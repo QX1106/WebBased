@@ -6,7 +6,14 @@ header('Content-Type: application/json');
 
 $member_id = $_user->member_id;
 
-unset($_SESSION['voucher_id']);
+$mode = post('mode', 'cart');
+
+$voucher_session_key =
+    $mode === 'buy_now'
+        ? 'buy_now_voucher_id'
+        : 'voucher_id';
+
+unset($_SESSION[$voucher_session_key]);
 
 // Get this member's cart
 $stm = $pdo->prepare("

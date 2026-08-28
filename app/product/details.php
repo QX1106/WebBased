@@ -47,7 +47,7 @@ $stm = $pdo->prepare("
     SELECT COUNT(*)
     FROM wishlist
     WHERE member_id = ?
-      AND product_id = ?
+    AND product_id = ?
 ");
 
 $stm->execute([
@@ -646,7 +646,6 @@ require '../_head.php';
             "
         >
 
-
             <button
                 type="button"
                 id="add-to-cart"
@@ -663,7 +662,6 @@ require '../_head.php';
             >
                 Add to Cart
             </button>
-
 
             <button
                 type="button"
@@ -913,36 +911,58 @@ require '../_head.php';
             }
         );
 
+// --------------------------------------------------------------
+// Buy Now
+// --------------------------------------------------------------
 
+document
+    .getElementById('buy-now')
+    .addEventListener('click', function () {
 
-    // --------------------------------------------------------------
-    // Buy Now
-    // --------------------------------------------------------------
+        var qty =
+            parseInt(qtyInput.value, 10) || 1;
 
-    document
-        .getElementById('buy-now')
-        .addEventListener(
-            'click',
-            function () {
+        fetch('/cart/buy-now.php', {
+            method: 'POST',
 
-                var qty =
-                    parseInt(
-                        qtyInput.value,
-                        10
-                    ) || 1;
+            headers: {
+                'Content-Type':
+                    'application/x-www-form-urlencoded'
+            },
 
+            body:
+                'product_id=' +
+                encodeURIComponent(
+                    <?= (int)$product->id ?>
+                ) +
+                '&quantity=' +
+                encodeURIComponent(qty)
+        })
+        .then(function (response) {
+            return response.json();
+        })
+        .then(function (data) {
+
+            if (!data.success) {
                 alert(
-                    'Proceeding to buy '
-                    + qty
-                    + ' item(s).'
+                    data.message ||
+                    'Could not proceed with Buy Now.'
                 );
-
+                return;
             }
-        );
 
+            window.location.href =
+                '/cart/index.php?mode=buy_now';
+        })
+        .catch(function () {
+            alert(
+                'Something went wrong. Please try again.'
+            );
+        });
 
+    });
 
-    // --------------------------------------------------------------
+   // --------------------------------------------------------------
     // Wishlist
     // --------------------------------------------------------------
 
@@ -1030,23 +1050,15 @@ require '../_head.php';
                                 .remove(
                                     'wishlisted'
                                 );
-
                         }
-
                     })
                     .catch(function () {
 
-                        alert(
-                            'Something went wrong. Please try again.'
-                        );
-
+                        alert('Something went wrong. Please try again.');
                     });
-
                 }
             );
     }
-
-
 })();
 
 </script>
