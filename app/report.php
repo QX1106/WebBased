@@ -4,7 +4,7 @@
 
 auto_complete_shipped_orders();
 
-// Revenue trend — supports 3/6/12 months, or a bi-weekly (14-day period) view
+// Revenue trend 
 $range = get('range', '6');
 if (!in_array($range, ['3', '6', '12', 'weekly'], true)) $range = '6';
 
