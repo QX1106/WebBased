@@ -95,13 +95,13 @@ require '../_head.php';
 
 <?php if ($req->status == 'Pending'): ?>
     <h2>Approve</h2>
-    <form method="post">
+    <form method="post" class="js-submit-loading">
         <input type="hidden" name="action" value="approve">
         <button data-confirm="Approve this request and cancel Order #<?= $order->order_id ?>?">Approve &amp; Cancel Order</button>
     </form>
 
     <h2>Reject</h2>
-    <form method="post">
+    <form method="post" class="js-submit-loading">
         <input type="hidden" name="action" value="reject">
         <label for="admin_note">Reason for rejection</label>
         <?= html_textarea('admin_note') ?>

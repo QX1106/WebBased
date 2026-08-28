@@ -6,6 +6,29 @@ auth('Member');
 // Get current member ID from session (not URL)
 $member_id = $_user->member_id;
 
+$mode = get('mode', 'cart');
+
+if ($mode === 'cart') {
+    unset($_SESSION['buy_now']);
+    unset($_SESSION['buy_now_voucher_id']);
+}
+
+$buy_now_mode =
+    $mode === 'buy_now' &&
+    isset($_SESSION['buy_now']);
+
+$buy_now = $buy_now_mode
+    ? $_SESSION['buy_now']
+    : null;
+
+$address_session_key = $buy_now_mode
+    ? 'buy_now_address'
+    : 'cart_address';
+
+$payment_session_key = $buy_now_mode
+    ? 'buy_now_payment_id'
+    : 'cart_payment_id';
+
 // Get this member's address
 $stm = $pdo->prepare("
     SELECT address
@@ -14,7 +37,9 @@ $stm = $pdo->prepare("
 ");
 
 $stm->execute([$member_id]);
-$address = $stm->fetchColumn();
+$default_address = $stm->fetchColumn();
+$address = $_SESSION[$address_session_key]
+    ?? $default_address;
 
 // Get payment method
 $stm = $pdo->query("
@@ -23,51 +48,118 @@ $stm = $pdo->query("
 ");
 
 $payment_methods = $stm->fetchAll();
-
-// Get this member's cart
-$stm = $pdo->prepare("
-    SELECT id
-    FROM cart
-    WHERE member_id = ?
-    ORDER BY created_at DESC
-    LIMIT 1
-");
-
-$stm->execute([$member_id]);
-$cart = $stm->fetch();
+$selected_payment_id =
+    $_SESSION[$payment_session_key]
+    ?? '';
 
 $items = [];
+$cart = null;
 
-if ($cart) {
+if ($buy_now_mode) {
 
-    // Automatically make sure quantity does not exceed available stock
-    $stm = $pdo->prepare("
-        UPDATE cart_item ci
-        JOIN product p ON p.id = ci.product_id
-        SET ci.quantity = p.stock_qty
-        WHERE ci.cart_id = ?
-        AND ci.quantity > p.stock_qty
-    ");
+    // --------------------------------------------------------------
+    // BUY NOW MODE
+    // --------------------------------------------------------------
 
-    $stm->execute([$cart->id]);
+    $product_id =
+        (int) $buy_now['product_id'];
 
-    // Get cart products
+    $quantity =
+        (int) $buy_now['quantity'];
+
     $stm = $pdo->prepare("
         SELECT
-            ci.product_id,
-            ci.quantity,
+            p.id AS product_id,
+            ? AS quantity,
             p.name,
             p.price,
             p.stock_qty,
             p.photo
-        FROM cart_item ci
-        JOIN product p ON p.id = ci.product_id
-        WHERE ci.cart_id = ?
-        ORDER BY p.name
+        FROM product p
+        WHERE p.id = ?
     ");
 
-    $stm->execute([$cart->id]);
-    $items = $stm->fetchAll();
+    $stm->execute([
+        $quantity,
+        $product_id
+    ]);
+
+    $item = $stm->fetch();
+
+    if ($item) {
+        if ($item && $item->stock_qty > 0) {
+
+            if ($item->quantity > $item->stock_qty) {
+                $item->quantity = $item->stock_qty;
+                $_SESSION['buy_now']['quantity'] = $item->stock_qty;
+            }
+
+            $items = [$item];
+        } else {
+
+            unset($_SESSION['buy_now']);
+            unset($_SESSION['buy_now_voucher_id']);
+
+            temp('info', 'This product is currently unavailable.');
+            redirect('../index.php');
+        }
+    }
+} else {
+
+    // --------------------------------------------------------------
+    // NORMAL CART MODE
+    // --------------------------------------------------------------
+
+    $stm = $pdo->prepare("
+        SELECT id
+        FROM cart
+        WHERE member_id = ?
+        ORDER BY created_at DESC
+        LIMIT 1
+    ");
+
+    $stm->execute([$member_id]);
+
+    $cart = $stm->fetch();
+
+
+    if ($cart) {
+
+        $stm = $pdo->prepare("
+            UPDATE cart_item ci
+            JOIN product p
+                ON p.id = ci.product_id
+            SET ci.quantity = p.stock_qty
+            WHERE ci.cart_id = ?
+              AND ci.quantity > p.stock_qty
+        ");
+
+        $stm->execute([$cart->id]);
+
+
+        $stm = $pdo->prepare("
+            SELECT
+                ci.product_id,
+                ci.quantity,
+                p.name,
+                p.price,
+                p.stock_qty,
+                p.photo
+            FROM cart_item ci
+
+            JOIN product p
+                ON p.id = ci.product_id
+
+            WHERE ci.cart_id = ?
+
+            ORDER BY p.name
+        ");
+
+        $stm->execute([$cart->id]);
+
+        $items =
+            $stm->fetchAll();
+    }
 }
 
 // Calculate total
@@ -80,8 +172,12 @@ foreach ($items as $item) {
 $voucher = null;
 $discount = 0;
 
+$voucher_session_key = $buy_now_mode
+    ? 'buy_now_voucher_id'
+    : 'voucher_id';
+
 // Check whether a voucher has already been applied
-if (isset($_SESSION['voucher_id'])) {
+if (isset($_SESSION[$voucher_session_key])) {
 
     $stm = $pdo->prepare("
         SELECT *
@@ -89,7 +185,7 @@ if (isset($_SESSION['voucher_id'])) {
         WHERE voucher_id = ?
     ");
 
-    $stm->execute([$_SESSION['voucher_id']]);
+    $stm->execute([$_SESSION[$voucher_session_key]]);
     $voucher = $stm->fetch();
 
     if ($voucher) {
@@ -146,7 +242,7 @@ if (isset($_SESSION['voucher_id'])) {
             // Total must never become negative
             $discount = min($discount, $subtotal);
         } else {
-            unset($_SESSION['voucher_id']);
+            unset($_SESSION[$voucher_session_key]);
             $voucher = null;
             $discount = 0;
         }
@@ -237,34 +333,70 @@ require '../_head.php';
             <!-- Voucher -->
             <div class="summary-section">
                 <label>Voucher</label>
-                <form method="post" action="voucher.php">
+                <form
+                    method="post"
+                    action="voucher.php"
+                    id="voucher-form">
+
+                    <input
+                        type="hidden"
+                        name="mode"
+                        value="<?= $buy_now_mode
+                                    ? 'buy_now'
+                                    : 'cart'
+                                ?>">
+
                     <div class="voucher-box">
+
                         <input
                             type="text"
                             name="voucher_code"
+                            id="voucher-code"
                             placeholder="Enter voucher code"
-                            value="<?= $voucher ? h($voucher->code) : '' ?>">
-                        <button type="submit">Apply</button>
+                            value="<?= $voucher
+                                        ? h($voucher->code)
+                                        : ''
+                                    ?>">
+
+                        <button type="submit">
+                            Apply
+                        </button>
+
                     </div>
+
                 </form>
             </div>
 
             <!-- Address-->
             <div class="summary-section">
                 <label>Address</label>
-                <textarea id="shipping-address"><?= $address ?></textarea>
+                <textarea id="shipping-address"><?= h($address) ?></textarea>
             </div>
 
             <!-- Payment method -->
             <div class="summary-section">
                 <label>Payment Method</label>
-                <select name="pay_id" required>
-                    <option value="" disabled selected>Select Payment Method</option>
+                <select
+                    name="pay_id"
+                    id="payment-method"
+                    required>
+                    <option
+                        value=""
+                        disabled
+                        <?= $selected_payment_id === '' ? 'selected' : '' ?>>
+                        Select Payment Method
+                    </option>
+
                     <?php foreach ($payment_methods as $payment): ?>
-                        <option value="<?= $payment->pay_id ?>">
-                            <?= htmlspecialchars($payment->pay_name) ?>
+                        <option
+                            value="<?= $payment->pay_id ?>"
+                            <?= (string)$selected_payment_id === (string)$payment->pay_id
+                                ? 'selected'
+                                : ''
+                            ?>>
+                            <?= h($payment->pay_name) ?>
                         </option>
-                    <?php endforeach ?>
+                    <?php endforeach; ?>
                 </select>
             </div>
 
@@ -317,44 +449,83 @@ require '../_head.php';
         // Reusable: remove an item from the cart (used by the remove button
         // and by "decrease past 1" on the quantity buttons)
         function removeItem(productId, row) {
-            return postJSON('delete.php', {
-                    product_id: productId
-                })
+
+            var buyNowMode =
+                <?= $buy_now_mode ? 'true' : 'false' ?>;
+
+            if (buyNowMode) {
+
+                return postJSON(
+                        'buy-now-remove.php', {}
+                    )
+                    .then(function(data) {
+
+                        if (!data.success) {
+                            alert(
+                                data.message ||
+                                'Something went wrong.'
+                            );
+                            return;
+                        }
+
+                        window.location.href =
+                            '/cart/index.php?mode=buy_now';
+                    });
+            }
+
+            return postJSON(
+                    'delete.php', {
+                        product_id: productId
+                    }
+                )
                 .then(function(data) {
+
                     if (!data.success) {
-                        alert(data.message || 'Something went wrong.');
+                        alert(
+                            data.message ||
+                            'Something went wrong.'
+                        );
                         return;
                     }
 
-                    if (row) row.remove();
+                    if (row) {
+                        row.remove();
+                    }
 
-                    var subtotalEl = document.getElementById('cart-subtotal');
-                    if (subtotalEl) subtotalEl.textContent = 'RM ' + data.subtotal;
+                    var subtotalEl =
+                        document.getElementById(
+                            'cart-subtotal'
+                        );
 
-                    var discountEl = document.getElementById('voucher-discount');
-                    if (discountEl) discountEl.textContent = '- RM ' + data.discount;
+                    if (subtotalEl) {
+                        subtotalEl.textContent =
+                            'RM ' + data.subtotal;
+                    }
 
-                    var totalEl = document.getElementById('cart-total');
-                    if (totalEl) totalEl.textContent = 'RM ' + data.total;
+                    var discountEl =
+                        document.getElementById(
+                            'voucher-discount'
+                        );
 
-                    if (data.voucher_removed) {
-                        var voucherRow = document.getElementById('voucher-discount-row');
-                        if (voucherRow) voucherRow.remove();
+                    if (discountEl) {
+                        discountEl.textContent =
+                            '- RM ' + data.discount;
+                    }
 
-                        var voucherDivider = document.getElementById('voucher-divider');
-                        if (voucherDivider) {
-                            voucherDivider.remove();
-                        }
+                    var totalEl =
+                        document.getElementById(
+                            'cart-total'
+                        );
 
-                        alert('Voucher removed because the requirements are no longer met.');
+                    if (totalEl) {
+                        totalEl.textContent =
+                            'RM ' + data.total;
                     }
 
                     if (data.is_empty) {
-                        location.reload(); // switch to the "empty cart" view
+                        location.reload();
                     }
-                })
-                .catch(function() {
-                    alert('Something went wrong. Please try again.');
+
                 });
         }
 
@@ -377,7 +548,8 @@ require '../_head.php';
 
                 postJSON('quantity.php', {
                         product_id: productId,
-                        action: action
+                        action: action,
+                        mode: '<?= $buy_now_mode ? 'buy_now' : 'cart' ?>'
                     })
                     .then(function(data) {
 
@@ -428,7 +600,11 @@ require '../_head.php';
         var removeVoucherBtn = document.getElementById('remove-voucher-btn');
         if (removeVoucherBtn) {
             removeVoucherBtn.addEventListener('click', function() {
-                postJSON('voucher-remove.php', {})
+                postJSON(
+                        'voucher-remove.php', {
+                            mode: '<?= $buy_now_mode ? 'buy_now' : 'cart' ?>'
+                        }
+                    )
                     .then(function(data) {
                         if (!data.success) {
                             alert(data.message || 'Something went wrong.');
@@ -454,49 +630,227 @@ require '../_head.php';
         }
 
         // Checkout button
-        var checkoutBtn = document.getElementById('checkout-btn');
+        // Checkout button
+        var checkoutBtn =
+            document.getElementById('checkout-btn');
+
         if (checkoutBtn) {
-            checkoutBtn.addEventListener('click', function() {
-                var paySelect = document.querySelector('select[name="pay_id"]');
-                var payId = paySelect ? paySelect.value : '';
 
-                var shippingAddress = document.getElementById('shipping-address').value.trim();
+            checkoutBtn.addEventListener(
+                'click',
+                function() {
 
-                if (!payId) {
-                    alert('Please select a payment method.');
-                    return;
-                }
+                    var paySelect =
+                        document.querySelector(
+                            'select[name="pay_id"]'
+                        );
 
-                if (!shippingAddress) {
-                    alert('Please enter a shipping address.');
-                    return;
-                }
+                    var payId =
+                        paySelect ?
+                        paySelect.value :
+                        '';
 
-                checkoutBtn.disabled = true;
-                checkoutBtn.textContent = 'Processing...';
+                    var shippingAddress =
+                        document
+                        .getElementById(
+                            'shipping-address'
+                        )
+                        .value
+                        .trim();
 
-                postJSON('/order/create-order.php', {
-                        pay_id: payId,
-                        shipping_address: shippingAddress
-                    })
-                    .then(function(data) {
-                        if (!data.success) {
-                            alert(data.message || 'Could not create order.');
-                            checkoutBtn.disabled = false;
-                            checkoutBtn.textContent = 'Proceed to Checkout';
+
+                    // ------------------------------------------------------
+                    // Check unapplied voucher
+                    // ------------------------------------------------------
+
+                    var voucherInput =
+                        document.getElementById(
+                            'voucher-code'
+                        );
+
+                    var enteredVoucher =
+                        voucherInput ?
+                        voucherInput.value.trim() :
+                        '';
+
+                    var appliedVoucher =
+                        <?= json_encode(
+                            $voucher
+                                ? $voucher->code
+                                : ''
+                        ) ?>;
+
+
+                    if (
+                        enteredVoucher !== '' &&
+                        enteredVoucher.toUpperCase() !==
+                        appliedVoucher.toUpperCase()
+                    ) {
+
+                        var shouldApply =
+                            confirm(
+                                'You entered a voucher code but have not applied it.\n\n' +
+                                'Press OK to apply the voucher first.\n' +
+                                'Press Cancel to continue without the voucher.'
+                            );
+
+
+                        if (shouldApply) {
+
+                            document
+                                .getElementById(
+                                    'voucher-form'
+                                )
+                                .submit();
+
                             return;
                         }
+                    }
 
-                        window.location.href = 'checkout.php?order_id=' + data.order_id;
-                    })
-                    .catch(function() {
-                        alert('Something went wrong. Please try again.');
-                        checkoutBtn.disabled = false;
-                        checkoutBtn.textContent = 'Proceed to Checkout';
-                    });
-            });
+
+                    // ------------------------------------------------------
+                    // Payment validation
+                    // ------------------------------------------------------
+
+                    if (!payId) {
+
+                        alert(
+                            'Please select a payment method.'
+                        );
+
+                        return;
+                    }
+
+
+                    // ------------------------------------------------------
+                    // Address validation
+                    // ------------------------------------------------------
+
+                    if (!shippingAddress) {
+
+                        alert(
+                            'Please enter a shipping address.'
+                        );
+
+                        return;
+                    }
+
+
+                    checkoutBtn.disabled = true;
+
+                    checkoutBtn.textContent =
+                        'Processing...';
+
+
+                    // ------------------------------------------------------
+                    // Create Order
+                    // ------------------------------------------------------
+
+                    postJSON(
+                            '/order/create-order.php', {
+                                pay_id: payId,
+
+                                shipping_address: shippingAddress,
+
+                                mode: '<?= $buy_now_mode ? 'buy_now' : 'cart' ?>'
+                            }
+                        )
+                        .then(function(data) {
+
+                            if (!data.success) {
+
+                                alert(
+                                    data.message ||
+                                    'Could not create order.'
+                                );
+
+                                checkoutBtn.disabled =
+                                    false;
+
+                                checkoutBtn.textContent =
+                                    'Proceed to Checkout';
+
+                                return;
+                            }
+
+
+                            window.location.href =
+                                'checkout.php?order_id=' +
+                                data.order_id;
+
+                        })
+                        .catch(function() {
+
+                            alert(
+                                'Something went wrong. Please try again.'
+                            );
+
+                            checkoutBtn.disabled =
+                                false;
+
+                            checkoutBtn.textContent =
+                                'Proceed to Checkout';
+                        });
+                }
+            );
         }
 
+        function saveCheckoutDetails() {
+            var address =
+                document
+                .getElementById('shipping-address')
+                .value;
+
+            var payment =
+                document
+                .getElementById('payment-method')
+                .value;
+
+            return postJSON(
+                'save-checkout-details.php', {
+                    shipping_address: address,
+                    pay_id: payment,
+                    mode: '<?= $buy_now_mode ? 'buy_now' : 'cart' ?>'
+                }
+            );
+        }
+
+        // Save when address changes
+        document
+            .getElementById('shipping-address')
+            .addEventListener(
+                'change',
+                saveCheckoutDetails
+            );
+
+        // Save when payment method changes
+        document
+            .getElementById('payment-method')
+            .addEventListener(
+                'change',
+                saveCheckoutDetails
+            );
+
+
+        // Save checkout details before applying voucher
+        var voucherForm =
+            document.getElementById('voucher-form');
+
+        if (voucherForm) {
+
+            voucherForm.addEventListener(
+                'submit',
+                function(e) {
+
+                    e.preventDefault();
+
+                    saveCheckoutDetails()
+                        .then(function() {
+                            voucherForm.submit();
+                        });
+                }
+            );
+        }
     })();
 </script>
 

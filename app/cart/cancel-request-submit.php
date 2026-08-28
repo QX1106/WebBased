@@ -13,15 +13,14 @@ if (!$order_id || $reason === '') {
     redirect("cancel-request.php?order_id=$order_id");
 }
 
-
 // Make sure the order belongs to this member
 // and is still Pending
 $stm = $pdo->prepare("
     SELECT order_id
     FROM orders
     WHERE order_id = ?
-      AND member_id = ?
-      AND order_status = 'Pending'
+    AND member_id = ?
+    AND order_status = 'Pending'
 ");
 
 $stm->execute([
@@ -33,7 +32,7 @@ $order = $stm->fetch();
 
 if (!$order) {
     temp('info', 'This order cannot be cancelled.');
-    redirect('list.php');
+    redirect('order.php');
 }
 
 
@@ -42,8 +41,8 @@ $stm = $pdo->prepare("
     SELECT COUNT(*)
     FROM cancel_request
     WHERE order_id = ?
-      AND member_id = ?
-      AND status = 'Pending'
+    AND member_id = ?
+    AND status = 'Pending'
 ");
 
 $stm->execute([
@@ -53,13 +52,11 @@ $stm->execute([
 
 if ($stm->fetchColumn() > 0) {
     temp('info', 'You already have a pending cancellation request for this order.');
-    redirect("detail.php?id=$order_id");
+    redirect("order-details.php?id=$order_id");
 }
-
 
 // Photo not handled yet
 $photo = null;
-
 
 // Insert cancellation request
 $stm = $pdo->prepare("
@@ -85,4 +82,4 @@ $stm->execute([
 
 temp('info', 'Cancellation request submitted successfully.');
 
-redirect("detail.php?id=$order_id");
+redirect("order-details.php?id=$order_id");
