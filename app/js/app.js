@@ -130,6 +130,8 @@ $(function () {
     });
 
     // Live username/email availability check 
+    const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
     $('[data-check-available]').each(function () {
         const $input = $(this);
         const field = $input.data('check-available');
@@ -141,6 +143,13 @@ $(function () {
             clearTimeout(timer);
             const value = $input.val().trim();
             if (!value) { $status.text('').removeClass('err ok'); return; }
+
+            // Format comes before availability — no point telling someone
+            // "asdf" is an available email when it isn't a valid email at all.
+            if (field === 'email' && !EMAIL_PATTERN.test(value)) {
+                $status.text('Invalid email format').removeClass('ok').addClass('err');
+                return;
+            }
 
             timer = setTimeout(function () {
                 $.getJSON('/member/check-available.php', { field: field, value: value }, function (data) {
