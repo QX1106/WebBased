@@ -49,10 +49,10 @@ $margin_amount = $product->price - $product->cost_price;
 $margin_percent = $product->price > 0 ? ($margin_amount / $product->price) * 100 : 0;
 $cost_bar_percent = $product->price > 0 ? min(100, ($product->cost_price / $product->price) * 100) : 0;
 
-// ---- More in this category --------------------------------------------
+// ---- More in this category (active products only) ----------------------
 $related_stm = $pdo->prepare("SELECT id, name, photo, price
                                FROM product
-                               WHERE category_id = ? AND id != ?
+                               WHERE category_id = ? AND id != ? AND status = 'Active'
                                ORDER BY name
                                LIMIT 4");
 $related_stm->execute([$product->category_id, $id]);
@@ -105,7 +105,10 @@ require '../_head.php';
 
 <div class="detail-info">
     <table class="form-table">
-        <tr><td style="width:130px;">Name</td><td><?= h($product->name) ?></td></tr>
+        <tr><td style="width:130px;">Name</td><td>
+            <?= h($product->name) ?>
+            <?php if ($product->status === 'Inactive'): ?><span class="status-badge-inactive">Inactive</span><?php endif; ?>
+        </td></tr>
         <tr><td>Category</td><td><?= h($product->category_name) ?></td></tr>
         <tr><td>Cost Price (per unit)</td><td>RM <?= number_format($product->cost_price, 2) ?></td></tr>
         <tr><td>Price</td><td>RM <?= number_format($product->price, 2) ?></td></tr>
@@ -120,7 +123,11 @@ require '../_head.php';
 
     <p>
         <a href="/product/update.php?id=<?= $product->id ?>">Edit</a> |
-        <a href="/product/delete.php?id=<?= $product->id ?>" onclick="return confirm('Delete this product?')">Delete</a> |
+        <?php if ($product->status === 'Inactive'): ?>
+            <a href="/product/restore.php?id=<?= $product->id ?>" onclick="return confirm('Restore this product so it shows up again?')">Restore</a> |
+        <?php else: ?>
+            <a href="/product/delete.php?id=<?= $product->id ?>" onclick="return confirm('Delete this product? It will be hidden but can be restored later.')">Delete</a> |
+        <?php endif; ?>
         <a href="/product/list.php">Back to List</a>
     </p>
 </div>
