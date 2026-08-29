@@ -72,7 +72,12 @@ require '../../_head.php';
         <td><?= h($row->email) ?></td>
         <td><?= h($row->created_at) ?></td>
         <td><?= h($row->status) ?></td>
-        <td><a href="/superadmin/admins/edit.php?id=<?= $row->member_id ?>">Manage</a></td>
+        <td>
+            <form method="post" action="/superadmin/admins/edit.php" style="display:inline; max-width:none;">
+                <input type="hidden" name="id" value="<?= $row->member_id ?>">
+                <button type="submit" class="link-button">Manage</button>
+            </form>
+        </td>
     </tr>
     <?php endforeach; ?>
 

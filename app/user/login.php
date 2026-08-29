@@ -1,8 +1,9 @@
 <?php require '../_base.php'; ?>
 <?php
 
-
-if ($_user && $_user->role == 'Member') redirect('/');
+// Already logged in? Send Admin and Super Admin to their own dashboards.
+if ($_user && $_user->role == 'Admin') redirect('/dashboard.php');
+if ($_user && $_user->role == 'Super Admin') redirect('/superadmin/dashboard.php');
 
 $_err = [];
 
@@ -14,53 +15,50 @@ if (is_post()) {
     if (!$password) $_err['password'] = 'Password is required';
 
     if (!$_err) {
-        // Only match accounts with role = Member — this is what keeps
-        // customer login separate from admin login.
-        $stm = $pdo->prepare("SELECT * FROM member WHERE username = ? AND role = 'Member'");
+        // Shared by Admin and Super Admin — customer accounts (role =
+        // Member) never match here.
+        $stm = $pdo->prepare("SELECT * FROM member WHERE username = ? AND role IN ('Admin', 'Super Admin')");
         $stm->execute([$username]);
-        $member = $stm->fetch();
+        $admin = $stm->fetch();
 
-        if ($member && is_account_locked($member)) {
-            $_err['password'] = 'Too many failed attempts. Try again in ' . login_lock_seconds_remaining($member) . ' second(s).';
-        } elseif (!$member || !password_verify($password, $member->password)) {
-            if ($member) record_failed_login($member->member_id);
+        if ($admin && is_account_locked($admin)) {
+            $_err['password'] = 'Too many failed attempts. Try again in ' . login_lock_seconds_remaining($admin) . ' second(s).';
+        } elseif (!$admin || !password_verify($password, $admin->password)) {
+            if ($admin) record_failed_login($admin->member_id);
             $_err['password'] = 'Invalid username or password';
-        } elseif ($member->status != 'Active') {
-            $_err['password'] = 'Your account has been blocked. Please contact support.';
-        } elseif (!$member->email_verified) {
-            redirect('/member/verify-email.php?email=' . urlencode($member->email));
+        } elseif ($admin->status != 'Active') {
+            $_err['password'] = 'Your admin account has been deactivated.';
         } else {
-            reset_login_attempts($member->member_id);
+            reset_login_attempts($admin->member_id);
             session_regenerate_id(true);
-            unset($member->password);
-            login($member, '/');
+            unset($admin->password);
+            $redirect_url = $admin->role == 'Super Admin' ? '/superadmin/dashboard.php' : '/dashboard.php';
+            login($admin, $redirect_url);
         }
     }
 }
 
-$_title = 'Login';
+$_title = 'Admin Login';
 require '../_head.php';
 ?>
 
-<h1>Login</h1>
+<h1>Admin Login</h1>
 
 <form method="post" novalidate>
     <label for="username">Username</label>
-    <?= html_text('username') ?>
+    <?= html_text('username', "placeholder='Enter your username' maxlength='50'") ?>
     <?= err('username') ?>
 
     <label for="password">Password</label>
     <div class="pw-field">
-        <?= html_password('password') ?>
+        <?= html_password('password', "placeholder='Enter your password' maxlength='50'") ?>
         <button type="button" class="toggle-pw" data-target="password" tabindex="-1"></button>
     </div>
     <?= err('password') ?>
 
-    <p><a href="/user/forgot-password.php">Forgot password?</a></p>
+    <p><a href="/admin/forgot-password.php">Forgot password?</a></p>
 
     <button>Login</button>
 </form>
-
-<p>Don't have an account? <a href="/member/register.php">Register here</a></p>
 
 <?php require '../_foot.php'; ?>

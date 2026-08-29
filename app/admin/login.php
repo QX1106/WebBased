@@ -46,17 +46,17 @@ require '../_head.php';
 
 <form method="post" novalidate>
     <label for="username">Username</label>
-    <?= html_text('username', "placeholder='Enter your username'") ?>
+    <?= html_text('username', "placeholder='Enter your username' maxlength='50'") ?>
     <?= err('username') ?>
 
     <label for="password">Password</label>
     <div class="pw-field">
-        <?= html_password('password', "placeholder='Enter your password'") ?>
+        <?= html_password('password', "placeholder='Enter your password' maxlength='50'") ?>
         <button type="button" class="toggle-pw" data-target="password" tabindex="-1"></button>
     </div>
     <?= err('password') ?>
 
-    <p><a href="/admin/forgot-password.php">Forgot password?</a></p>
+    <p><a href="/admin/forgot-password.php" style="text-decoration: underline !important;">Forgot password?</a></p>
 
     <button>Login</button>
 </form>
