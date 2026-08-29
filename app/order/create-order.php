@@ -33,6 +33,15 @@ if (!$shipping_address) {
     exit;
 }
 
+if (strlen($shipping_address) > 255) {
+    echo json_encode([
+        'success' => false,
+        'message' =>
+            'Shipping address is too long.'
+    ]);
+    exit;
+}
+
 
 // ==========================
 // Validate payment method
@@ -369,6 +378,34 @@ try {
 
     $order_id =
         $pdo->lastInsertId();
+
+
+    // ======================
+    // Sync address back to profile
+    // ======================
+
+    // If the shipping address entered at checkout differs from what's
+    // saved on the member's profile, keep the profile up to date too —
+    // so next time they check out (or view their profile) it's already
+    // pre-filled with the address they actually used.
+    if ($shipping_address !== ($_user->address ?? '')) {
+
+        $stm = $pdo->prepare("
+            UPDATE member
+            SET address = ?, updated_at = NOW()
+            WHERE member_id = ?
+        ");
+
+        $stm->execute([
+            $shipping_address,
+            $member_id
+        ]);
+
+        // Keep the session copy in sync so profile.php / edit-profile.php
+        // reflect it immediately without needing to re-login.
+        $_user->address = $shipping_address;
+        $_SESSION['user'] = $_user;
+    }
 
 
     // ======================

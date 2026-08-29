@@ -80,11 +80,11 @@ require '../_head.php';
 
 <form method="post" enctype="multipart/form-data" novalidate>
     <label for="username">Username</label>
-    <?= html_text('username') ?>
+    <?= html_text('username', "data-check-available='username'") ?>
     <?= err('username') ?>
 
     <label for="email">Email</label>
-    <?= html_text('email') ?>
+    <?= html_text('email', "data-check-available='email'") ?>
     <?= err('email') ?>
 
     <label for="phone">Phone Number</label>

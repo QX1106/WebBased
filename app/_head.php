@@ -73,7 +73,7 @@ $_nav_categories = $pdo->query("SELECT id, name FROM category ORDER BY name")->f
             <div class="sidebar-foot">
                 <a href="<?= $_is_super ? '/superadmin/profile.php' : '/admin/profile.php' ?>" class="user-chip" style="text-decoration:none;">
                     <?= user_avatar($_user, 32) ?>
-                    <span><?= h($_user->username) ?> (<?= h($_user->role) ?>)</span>
+                    <span><?= h($_user->username) ?></span>
                 </a>
                 <a href="/user/logout.php">Logout</a>
             </div>
@@ -103,7 +103,7 @@ $_nav_categories = $pdo->query("SELECT id, name FROM category ORDER BY name")->f
                 <a href="/cart/order.php">Orders</a>
                 <a href="/wishlist/index.php">♡ Wishlist</a>
             <?php endif; ?>
-            <span class="user-chip"><a href="/member/profile.php" style="display:flex;align-items:center;gap:8px;text-decoration:none;"><?= user_avatar($_user, 28) ?> <?= h($_user->username) ?> (<?= h($_user->role) ?>)</a></span>
+            <span class="user-chip"><a href="/member/profile.php" style="display:flex;align-items:center;gap:8px;text-decoration:none;"><?= user_avatar($_user, 28) ?> <?= h($_user->username) ?></a></span>
             <a href="/user/logout.php">Logout</a>
         <?php else: ?>
             <a href="/user/login.php">Login</a>

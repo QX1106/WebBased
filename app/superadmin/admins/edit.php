@@ -54,11 +54,9 @@ if (is_post() && $action == 'update') {
     if (!$_err) {
         $pdo->prepare("UPDATE member SET username = ?, email = ?, phone = ?, updated_at = NOW() WHERE member_id = ?")
             ->execute([$username, $email, $phone, $admin->member_id]);
-        $admin->username = $username;
-        $admin->email = $email;
-        $admin->phone = $phone;
+
         temp('info', 'Admin details updated.');
-        redirect("/superadmin/admins/edit.php?id=$id");
+        redirect('/superadmin/admins/list.php');
     }
 }
 
@@ -72,18 +70,15 @@ require '../../_head.php';
 
 <h1>Manage Admin</h1>
 
-<table class="detail">
-    <tr><th>Photo</th><td><?= user_avatar($admin, 60) ?></td></tr>
-    <tr><th>Status</th><td><?= h($admin->status) ?></td></tr>
-    <tr><th>Registered</th><td><?= h($admin->created_at) ?></td></tr>
-</table>
-
-<p>
-    <form method="post" style="display:inline; max-width:none; margin:0;">
-        <input type="hidden" name="action" value="toggle_status">
-        <button><?= $admin->status == 'Active' ? 'Deactivate' : 'Activate' ?> Admin</button>
-    </form>
-</p>
+<div class="user-chip" style="margin-bottom:24px;">
+    <?= user_avatar($admin, 48) ?>
+    <div>
+        <strong style="display:block;"><?= h($admin->username) ?></strong>
+        <span style="color:var(--muted); font-size:13px;">
+            <?= h($admin->status) ?> · Registered <?= h($admin->created_at) ?>
+        </span>
+    </div>
+</div>
 
 <h2>Edit Details</h2>
 <form method="post" novalidate>
@@ -102,8 +97,25 @@ require '../../_head.php';
     <?= err('phone') ?>
 
     <button>Save Changes</button>
+    <a href="/superadmin/admins/list.php">Cancel</a>
 </form>
 
-<p><a href="/superadmin/admins/list.php">Back to Admin List</a></p>
+<h2>Account Status</h2>
+<p style="color:var(--muted); max-width:480px;">
+    <?php if ($admin->status == 'Active'): ?>
+        This admin can currently log in and use the admin dashboard. Deactivating blocks their access immediately without deleting the account.
+    <?php else: ?>
+        This admin is currently blocked from logging in. Activating restores their access immediately.
+    <?php endif; ?>
+</p>
+<form method="post" style="max-width:none;">
+    <input type="hidden" name="action" value="toggle_status">
+    <button class="<?= $admin->status == 'Active' ? 'btn-danger' : '' ?>"
+            data-confirm="<?= $admin->status == 'Active' ? 'Deactivate this admin account?' : 'Activate this admin account?' ?>">
+        <?= $admin->status == 'Active' ? 'Deactivate Admin' : 'Activate Admin' ?>
+    </button>
+</form>
+
+<p style="margin-top:32px;"><a href="/superadmin/admins/list.php" class="btn-outline">Back to Admin List</a></p>
 
 <?php require '../../_foot.php'; ?>

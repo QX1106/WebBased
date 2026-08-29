@@ -58,6 +58,7 @@ require '../../_head.php';
 ?>
 
 <h1>Create Admin</h1>
+<p style="color:var(--muted); max-width:480px;">New accounts created here are always given the Admin role — Super Admin accounts can't be created through this form.</p>
 
 <form method="post" novalidate>
     <label for="username">Username</label>
