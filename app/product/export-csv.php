@@ -23,7 +23,7 @@ header('Content-Disposition: attachment; filename="products.csv"');
 $out = fopen('php://output', 'w');
 
 // Header row
-fputcsv($out, ['ID', 'Name', 'Category', 'Price (RM)', 'Stock Qty', 'Description', 'Photo', 'Video URL']);
+fputcsv($out, ['ID', 'Name', 'Category', 'Price (RM)', 'Cost Price (RM)', 'Stock Qty', 'Status', 'Description', 'Photo', 'Video URL']);
 
 foreach ($rows as $row) {
     fputcsv($out, [
@@ -31,7 +31,9 @@ foreach ($rows as $row) {
         csv_safe($row->name),
         csv_safe($row->category_name),
         number_format($row->price, 2),
+        number_format($row->cost_price, 2),
         $row->stock_qty,
+        csv_safe($row->status),
         csv_safe($row->description),
         csv_safe($row->photo),
         csv_safe($row->video_url),

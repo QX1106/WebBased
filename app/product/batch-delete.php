@@ -11,29 +11,16 @@ if (!is_array($ids) || !$ids) {
 
 $deleted = 0;
 
+// Soft delete (see product/delete.php for why): mark Inactive instead of
+// removing the rows, so past orders referencing these products stay intact.
 foreach ($ids as $id) {
-    $stm = $pdo->prepare("SELECT * FROM product WHERE id = ?");
+    $stm = $pdo->prepare("SELECT id FROM product WHERE id = ?");
     $stm->execute([$id]);
-    $product = $stm->fetch();
-    if (!$product) continue;
+    if (!$stm->fetch()) continue;
 
-    // Same cleanup as single delete.php: photo file, gallery files + rows
-    if ($product->photo && file_exists(root("photos/{$product->photo}"))) {
-        unlink(root("photos/{$product->photo}"));
-    }
-
-    $gallery_stm = $pdo->prepare("SELECT * FROM product_photo WHERE product_id = ?");
-    $gallery_stm->execute([$id]);
-    foreach ($gallery_stm->fetchAll() as $gp) {
-        if (file_exists(root("photos/{$gp->photo}"))) {
-            unlink(root("photos/{$gp->photo}"));
-        }
-    }
-    $pdo->prepare("DELETE FROM product_photo WHERE product_id = ?")->execute([$id]);
-    $pdo->prepare("DELETE FROM product WHERE id = ?")->execute([$id]);
-
+    $pdo->prepare("UPDATE product SET status = 'Inactive' WHERE id = ?")->execute([$id]);
     $deleted++;
 }
 
-temp('info', "$deleted product(s) deleted.");
+temp('info', "$deleted product(s) deleted. They can be restored from Product Listing (Show inactive).");
 redirect('/product/list.php');

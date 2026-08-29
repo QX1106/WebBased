@@ -20,6 +20,10 @@ in_array($dir, ['asc', 'desc']) || $dir = 'asc';
 $name = get('name', '');
 $category_id = get('category_id', '');
 $low_stock_only = get('low_stock', '') == '1';
+$show_inactive = get('show_inactive', '') == '1';
+
+$view = get('view', 'table');
+in_array($view, ['table', 'photo']) || $view = 'table';
 
 $categories = $pdo->query("SELECT id, name FROM category ORDER BY name")
                    ->fetchAll(PDO::FETCH_KEY_PAIR);
@@ -34,13 +38,20 @@ $sql = "SELECT p.*, c.name AS category_name
         WHERE p.name LIKE ?
           AND (p.category_id = ? OR ?)
           AND (? OR p.stock_qty <= " . LOW_STOCK_THRESHOLD . ")
+          AND (? OR p.status = 'Active')
         ORDER BY $sort $dir";
-$params = ["%$name%", $category_id, $category_id == '', !$low_stock_only];
+$params = ["%$name%", $category_id, $category_id == '', !$low_stock_only, $show_inactive];
 
 $p = new SimplePager($pdo, $sql, $params, 10, $page);
 $arr = $p->result;
 
-$qs = '&name=' . urlencode($name) . '&category_id=' . urlencode($category_id) . '&low_stock=' . ($low_stock_only ? '1' : '');
+$qs = '&name=' . urlencode($name) . '&category_id=' . urlencode($category_id) . '&low_stock=' . ($low_stock_only ? '1' : '')
+    . '&show_inactive=' . ($show_inactive ? '1' : '') . '&view=' . $view;
+
+// Base query string (filters + sort, no page) used to build the two View links below.
+$view_base_qs = 'name=' . urlencode($name) . '&category_id=' . urlencode($category_id)
+              . '&low_stock=' . ($low_stock_only ? '1' : '') . '&show_inactive=' . ($show_inactive ? '1' : '')
+              . '&sort=' . urlencode($sort) . '&dir=' . urlencode($dir);
 
 $_title = 'Product Maintenance';
 require '../_head.php';
@@ -60,6 +71,7 @@ require '../_head.php';
     <?= html_search('name', "placeholder='Search product name'") ?>
     <?= html_select('category_id', $categories, 'All Categories') ?>
     <label><input type="checkbox" name="low_stock" value="1" <?= $low_stock_only ? 'checked' : '' ?>> Low stock only</label>
+    <label><input type="checkbox" name="show_inactive" value="1" <?= $show_inactive ? 'checked' : '' ?>> Show inactive</label>
     <button>Search</button>
     <a href="/product/list.php" class="btn-outline">Reset</a>
 </form>
@@ -68,12 +80,84 @@ require '../_head.php';
     <a href="/product/insert.php" class="btn-accent">+ Add New Product</a>
     <a href="/product/export-csv.php?name=<?= urlencode($name) ?>&category_id=<?= urlencode($category_id) ?>" class="btn-accent">Export CSV</a>
     <a href="/product/batch-insert.php" class="btn-accent">Batch Insert (CSV)</a>
+
+    <span class="toolbar-spacer"></span>
+
+    <div class="view-control">
+        <button type="button" class="view-btn" id="view-btn">
+            <?php if ($view === 'photo'): ?>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>
+                <span>Photo View</span>
+            <?php else: ?>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="1"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <span>Table View</span>
+            <?php endif; ?>
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="view-menu" id="view-menu">
+            <a class="view-option <?= $view === 'table' ? 'active' : '' ?>" href="?<?= $view_base_qs ?>&view=table">
+                <span class="dot"></span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="1"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9" y1="10" x2="9" y2="20"/></svg>
+                Table View
+            </a>
+            <a class="view-option <?= $view === 'photo' ? 'active' : '' ?>" href="?<?= $view_base_qs ?>&view=photo">
+                <span class="dot"></span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>
+                Photo View
+            </a>
+        </div>
+    </div>
 </div>
 
 <p>
     <?= $p->count ?> of <?= $p->item_count ?> record(s) |
     Page <?= $p->page ?> of <?= $p->page_count ?>
 </p>
+
+<?php if ($view === 'photo'): ?>
+
+<div class="photo-grid">
+    <?php foreach ($arr as $row): ?>
+    <?php $is_low = $row->stock_qty <= LOW_STOCK_THRESHOLD; ?>
+    <?php $is_inactive = $row->status === 'Inactive'; ?>
+    <div class="photo-card <?= $is_low ? 'low' : '' ?> <?= $is_inactive ? 'inactive' : '' ?>">
+        <div class="photo-card-thumb">
+            <?php if ($row->photo): ?>
+                <img src="/photos/<?= h($row->photo) ?>" alt="">
+            <?php else: ?>
+                <span class="no-photo">No Photo</span>
+            <?php endif; ?>
+        </div>
+        <div class="photo-card-body">
+            <div class="photo-card-name">
+                <a href="/product/view.php?id=<?= $row->id ?>"><?= h($row->name) ?></a>
+                <?php if ($is_inactive): ?><span class="status-badge-inactive">Inactive</span><?php endif; ?>
+            </div>
+            <div class="photo-card-cat"><?= h($row->category_name) ?></div>
+            <div class="photo-card-meta">
+                <span class="photo-card-price">RM <?= number_format($row->price, 2) ?></span>
+                <span class="photo-card-stock <?= $is_low ? 'low' : '' ?>">
+                    <?= $row->stock_qty ?><?= $is_low ? ' ⚠' : '' ?>
+                </span>
+            </div>
+            <div class="photo-card-actions">
+                <a href="/product/update.php?id=<?= $row->id ?>">Edit</a> |
+                <?php if ($is_inactive): ?>
+                    <a href="/product/restore.php?id=<?= $row->id ?>" onclick="return confirm('Restore this product so it shows up again?')">Restore</a>
+                <?php else: ?>
+                    <a href="/product/delete.php?id=<?= $row->id ?>" onclick="return confirm('Delete this product? It will be hidden but can be restored later.')">Delete</a>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+    <?php endforeach ?>
+
+    <?php if (!$arr): ?>
+    <p>No products found.</p>
+    <?php endif ?>
+</div>
+
+<?php else: ?>
 
 <table class="table">
     <tr>
@@ -85,7 +169,8 @@ require '../_head.php';
 
     <?php foreach ($arr as $row): ?>
     <?php $is_low = $row->stock_qty <= LOW_STOCK_THRESHOLD; ?>
-    <tr style="<?= $is_low ? 'background:#fdecea;' : '' ?>">
+    <?php $is_inactive = $row->status === 'Inactive'; ?>
+    <tr style="<?= $is_inactive ? 'opacity:0.55;' : ($is_low ? 'background:#fdecea;' : '') ?>">
         <td style="text-align:center;"><input type="checkbox" name="ids[]" value="<?= $row->id ?>" class="row-check"></td>
         <td>
             <?php if ($row->photo): ?>
@@ -94,7 +179,10 @@ require '../_head.php';
                 <span class="no-photo">No Photo</span>
             <?php endif; ?>
         </td>
-        <td><a href="/product/view.php?id=<?= $row->id ?>"><?= h($row->name) ?></a></td>
+        <td>
+            <a href="/product/view.php?id=<?= $row->id ?>"><?= h($row->name) ?></a>
+            <?php if ($is_inactive): ?><span class="status-badge-inactive">Inactive</span><?php endif; ?>
+        </td>
         <td><?= h($row->category_name) ?></td>
         <td style="white-space:nowrap;">RM <?= number_format($row->price, 2) ?></td>
         <td style="white-space:nowrap;">
@@ -105,7 +193,11 @@ require '../_head.php';
         </td>
         <td style="white-space:nowrap;">
             <a href="/product/update.php?id=<?= $row->id ?>">Edit</a> |
-            <a href="/product/delete.php?id=<?= $row->id ?>" onclick="return confirm('Delete this product?')">Delete</a>
+            <?php if ($is_inactive): ?>
+                <a href="/product/restore.php?id=<?= $row->id ?>" onclick="return confirm('Restore this product so it shows up again?')">Restore</a>
+            <?php else: ?>
+                <a href="/product/delete.php?id=<?= $row->id ?>" onclick="return confirm('Delete this product? It will be hidden but can be restored later.')">Delete</a>
+            <?php endif; ?>
         </td>
     </tr>
     <?php endforeach ?>
@@ -124,12 +216,31 @@ require '../_head.php';
 <!-- Hidden form, submitted via JS — keeps <table> out of a <form> wrapper -->
 <form method="post" action="/product/batch-delete.php" id="batch-form" style="display:none;"></form>
 
+<?php endif; ?>
+
 <script>
-    document.getElementById('select-all').addEventListener('change', function () {
-        document.querySelectorAll('.row-check').forEach(function (cb) {
-            cb.checked = this.checked;
-        }.bind(this));
-    });
+    var viewBtn = document.getElementById('view-btn');
+    var viewMenu = document.getElementById('view-menu');
+    if (viewBtn && viewMenu) {
+        viewBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            viewMenu.classList.toggle('open');
+        });
+        document.addEventListener('click', function (e) {
+            if (!viewMenu.contains(e.target) && e.target !== viewBtn) {
+                viewMenu.classList.remove('open');
+            }
+        });
+    }
+
+    var selectAll = document.getElementById('select-all');
+    if (selectAll) {
+        selectAll.addEventListener('change', function () {
+            document.querySelectorAll('.row-check').forEach(function (cb) {
+                cb.checked = this.checked;
+            }.bind(this));
+        });
+    }
 
     var deleteBtn = document.getElementById('delete-selected-btn');
     if (deleteBtn) {
@@ -139,7 +250,7 @@ require '../_head.php';
                 alert('Select at least one product first.');
                 return;
             }
-            if (!confirm('Delete all selected products? This cannot be undone.')) {
+            if (!confirm('Delete all selected products? They will be hidden but can be restored later.')) {
                 return;
             }
             var form = document.getElementById('batch-form');
