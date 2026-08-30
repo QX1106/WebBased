@@ -58,6 +58,15 @@ if (!$selected_address && $saved_addresses) {
 
 $selected_address_id = $selected_address ? $selected_address->address_id : null;
 
+// Temporary addresses are checkout drafts, not address-book records.
+$temporary_address = $_SESSION[$address_session_key . '_temporary'] ?? null;
+$use_temporary = $temporary_address && (($_SESSION[$address_session_key] ?? '') === 'temporary' || !$saved_addresses);
+if ($use_temporary) $selected_address_id = 'temporary';
+$address_preview = $use_temporary ? $temporary_address['address'] : ($selected_address->address ?? '');
+if (empty($_SESSION['address_token'])) {
+    $_SESSION['address_token'] = bin2hex(random_bytes(32));
+}
+
 // Get payment method
 $stm = $pdo->query("
     SELECT *
@@ -388,8 +397,11 @@ require '../_head.php';
             <div class="summary-section">
                 <label for="shipping-address-select">Shipping Address</label>
 
-                <?php if ($saved_addresses): ?>
+                <?php if ($saved_addresses || $temporary_address): ?>
                     <select id="shipping-address-select">
+                        <?php if ($temporary_address): ?>
+                            <option value="temporary" data-address="<?= h($temporary_address['address']) ?>" <?= $use_temporary ? 'selected' : '' ?>>Different address for this purchase</option>
+                        <?php endif; ?>
                         <?php foreach ($saved_addresses as $addr): ?>
                             <option
                                 value="<?= $addr->address_id ?>"
@@ -406,23 +418,26 @@ require '../_head.php';
                     <textarea
                         class="address-preview"
                         id="shipping-address-display"
+                        readonly
                         maxlength="255"
                         rows="3"
                         style="border:1px solid var(--border); border-radius:6px; padding:8px 10px; margin-top:6px; width:100%; resize:vertical; font:inherit; white-space:pre-line;"
-                    ><?= h($selected_address->address) ?></textarea>
+                    ><?= h($address_preview) ?></textarea>
                     <p style="color:var(--muted); font-size:12px; margin:4px 0 0;">
-                        Editing this will update your saved address when you checkout.
+                        Selecting an address does not change your default. The delivery address is copied into your order.
                     </p>
                 <?php else: ?>
                     <p>You don't have a shipping address on file yet.</p>
                 <?php endif; ?>
 
+                <a href="edit-address.php?mode=<?= $buy_now_mode ? 'buy_now' : 'cart' ?>" style="text-decoration: underline;">Use a different address</a>
+                <br>
                 <a
                     href="/member/address/list.php?return=<?= urlencode(
                         '/cart/index.php' . ($buy_now_mode ? '?mode=buy_now' : '')
                     ) ?>"
                     style="text-decoration: underline;">
-                    <?= $saved_addresses ? '+ Add another address' : 'Add an address' ?>
+                    Manage saved addresses
                 </a>
             </div>
 
@@ -793,10 +808,7 @@ require '../_head.php';
 
 
                     // ------------------------------------------------------
-                    // Save checkout details first — this is what persists
-                    // any edit made in the shipping address box back to
-                    // the member's saved address, before the order is
-                    // created.
+                    // Remember the selection only, without editing saved addresses.
                     // ------------------------------------------------------
 
                     saveCheckoutDetails()
@@ -806,6 +818,7 @@ require '../_head.php';
                                     pay_id: payId,
 
                                     address_id: addressId,
+                                    token: '<?= h($_SESSION['address_token']) ?>',
 
                                     mode: '<?= $buy_now_mode ? 'buy_now' : 'cart' ?>'
                                 }
@@ -835,10 +848,10 @@ require '../_head.php';
                                 data.order_id;
 
                         })
-                        .catch(function() {
+                        .catch(function(error) {
 
                             alert(
-                                'Something went wrong. Please try again.'
+                                error.message || 'Something went wrong. Please try again.'
                             );
 
                             checkoutBtn.disabled =
@@ -860,17 +873,17 @@ require '../_head.php';
             var addressEl =
                 document.getElementById('shipping-address-select');
 
-            var addressTextEl =
-                document.getElementById('shipping-address-display');
-
             return postJSON(
                 'save-checkout-details.php', {
                     pay_id: payment,
                     address_id: addressEl ? addressEl.value : '',
-                    address_text: addressTextEl ? addressTextEl.value : '',
+                    token: '<?= h($_SESSION['address_token']) ?>',
                     mode: '<?= $buy_now_mode ? 'buy_now' : 'cart' ?>'
                 }
-            );
+            ).then(function(data) {
+                if (!data.success) throw new Error(data.message || 'Could not save checkout details.');
+                return data;
+            });
         }
 
         // Save when payment method changes
@@ -878,7 +891,7 @@ require '../_head.php';
             .getElementById('payment-method')
             .addEventListener(
                 'change',
-                saveCheckoutDetails
+                function() { saveCheckoutDetails().catch(function(error) { alert(error.message); }); }
             );
 
         // Update the preview and save when a different saved address
@@ -902,7 +915,7 @@ require '../_head.php';
                         opt ? (opt.dataset.address || '') : '';
                 }
 
-                saveCheckoutDetails();
+                saveCheckoutDetails().catch(function(error) { alert(error.message); });
             });
         }
 
@@ -922,7 +935,7 @@ require '../_head.php';
                     saveCheckoutDetails()
                         .then(function() {
                             voucherForm.submit();
-                        });
+                        }).catch(function(error) { alert(error.message); });
                 }
             );
         }

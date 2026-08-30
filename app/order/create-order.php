@@ -8,13 +8,38 @@ header('Content-Type: application/json');
 $member_id = $_user->member_id;
 $payment_id = $_POST['pay_id'] ?? null;
 
-// Either an existing saved address (address book) or a brand new one
-// typed at checkout — exactly one of these two paths is used.
+// Use either an existing saved address or the checkout form's session draft.
 $address_id = $_POST['address_id'] ?? null;
-$new_address = trim($_POST['new_address'] ?? '');
-$new_address_label = trim($_POST['new_address_label'] ?? '');
-$save_new_address = !empty($_POST['save_address']);
-$set_as_default = !empty($_POST['set_default']);
+$set_as_default = false;
+
+// Accept only our form's checkout draft, not arbitrary new-address fields.
+$token = post('token', '');
+if (!is_post() || !is_string($token) || $token === '' || !hash_equals($_SESSION['address_token'] ?? '', $token)) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Please reload the cart and try again.']);
+    exit;
+}
+$mode = post('mode', 'cart');
+// The existing order builder processes normal cart items only.
+// Do not accidentally order the normal cart when the customer chose Buy Now.
+if ($mode === 'buy_now') {
+    echo json_encode(['success' => false, 'message' => 'Please add this product to your cart and check out there. Buy Now order creation is not implemented yet.']);
+    exit;
+}
+$address_key = ($mode === 'buy_now' ? 'buy_now_address_' : 'cart_address_') . $member_id;
+$new_address = '';
+$new_address_label = '';
+$save_new_address = false;
+if ($address_id === 'temporary') {
+    $draft = $_SESSION[$address_key . '_temporary'] ?? [];
+    $new_address = $draft['address'] ?? '';
+    $new_address_label = $draft['label'] ?? '';
+    $save_new_address = !empty($draft['save']);
+    $set_as_default = $save_new_address && !empty($draft['default']);
+    $address_id = null;
+} elseif (!is_string($address_id) || !ctype_digit($address_id)) {
+    $address_id = null;
+}
 
 
 // ==========================
@@ -413,9 +438,7 @@ try {
     // saved one, add it to their address book now — inside the same
     // transaction, so a failed order doesn't leave an orphan address
     // behind.
-    $picked_existing_address = !empty($address_id);
-
-    if (!$address_id && $new_address) {
+    if (!$address_id && $new_address && $save_new_address) {
 
         $stm = $pdo->prepare("SELECT COUNT(*) FROM member_address WHERE member_id = ?");
         $stm->execute([$member_id]);
@@ -440,25 +463,6 @@ try {
             $make_default ? 1 : 0
         ]);
 
-        $address_id = $pdo->lastInsertId();
-    }
-
-    // If the shopper instead picked an existing saved address AND
-    // checked "set as default", promote it here — this is the branch
-    // that was previously being skipped, since set_as_default only ever
-    // got applied when a brand-new address was being inserted above.
-    if ($picked_existing_address && $set_as_default) {
-
-        $stm = $pdo->prepare("SELECT is_default FROM member_address WHERE address_id = ? AND member_id = ?");
-        $stm->execute([$address_id, $member_id]);
-        $current = $stm->fetch();
-
-        if ($current && !$current->is_default) {
-            $pdo->prepare("UPDATE member_address SET is_default = 0 WHERE member_id = ?")
-                ->execute([$member_id]);
-            $pdo->prepare("UPDATE member_address SET is_default = 1 WHERE address_id = ?")
-                ->execute([$address_id]);
-        }
     }
 
 
@@ -471,18 +475,16 @@ try {
                 total_amount,
                 order_status,
                 shipping_address,
-                address_id,
                 payment_id
             )
         VALUES
-            (?, NOW(), ?, 'Pending', ?, ?, ?)
+            (?, NOW(), ?, 'Pending', ?, ?)
     ");
 
     $stm->execute([
         $member_id,
         $total_amount,
         $shipping_address,
-        $address_id,
         $payment_id
     ]);
 
@@ -490,7 +492,8 @@ try {
         $pdo->lastInsertId();
 
 
-    // The default address is updated only on the edit-address page.
+    // shipping_address is a permanent snapshot for saved AND temporary addresses.
+    // Orders keep the address text only; no address-book link is needed.
 
     // ======================
     // Copy cart into order
@@ -599,6 +602,7 @@ try {
 
     // The next cart starts with the member's default address.
     unset($_SESSION['cart_address_' . $member_id]);
+    unset($_SESSION[$address_key . '_temporary']);
 
 
     echo json_encode([

@@ -38,7 +38,10 @@ require '../_head.php';
     <a href="/member/address/list.php">My Addresses</a>
 </p>
 
-<h2>Order History</h2>
+<div style="display: flex; justify-content: space-between; align-items: center; margin: 40px 0 20px;">
+    <h2 style="margin: 0;">Order History</h2>
+    <a href="/order/history.php" style="text-decoration: underline;">View all</a>
+</div>
 <table class="table">
     <tr>
         <th>Order ID</th>

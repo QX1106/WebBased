@@ -2,6 +2,17 @@
 <?php auth('Member'); ?>
 <?php
 
+// Protect all address-book changes against unwanted form submissions.
+if (empty($_SESSION['address_token'])) {
+    $_SESSION['address_token'] = bin2hex(random_bytes(32));
+}
+if (is_post()) {
+    $token = post('token', '');
+    if (!is_string($token) || !hash_equals($_SESSION['address_token'], $token)) {
+        http_response_code(403);
+        exit('Invalid form. Please reload this page and try again.');
+    }
+}
 $_err = [];
 $action = post('action');
 
@@ -83,7 +94,17 @@ if (is_post() && $action == 'delete') {
     $addr = $stm->fetch();
 
     if ($addr) {
-        $pdo->prepare("DELETE FROM member_address WHERE address_id = ?")->execute([$address_id]);
+        // Orders store their own shipping_address text, so deletion here
+        // does not change the address recorded on any existing order.
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare("DELETE FROM member_address WHERE address_id = ? AND member_id = ?")->execute([$address_id, $_user->member_id]);
+            $pdo->commit();
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            temp('info', 'Could not delete this address. No changes were saved.');
+            redirect($list_url);
+        }
 
         // If the deleted one was the default, promote the most recently
         // added remaining address so there's always a clear default for
@@ -127,9 +148,11 @@ require '../../_head.php';
     <?php if ($a->is_default): ?><span style="background:#e4ddd0; padding:2px 8px; border-radius:4px; font-size:12px;">Default</span><?php endif; ?>
     <?php if ($a->label): ?><strong style="display:block; margin-top:4px;"><?= h($a->label) ?></strong><?php endif; ?>
     <p style="margin:4px 0;"><?= nl2br(h($a->address)) ?></p>
+    <a href="edit.php?id=<?= $a->address_id ?>&amp;return=<?= urlencode($return_safe ?? '') ?>" class="btn-outline">Edit</a>
 
     <?php if (!$a->is_default): ?>
     <form method="post" style="display:inline; max-width:none;">
+        <input type="hidden" name="token" value="<?= h($_SESSION['address_token']) ?>">
         <input type="hidden" name="action" value="set_default">
         <input type="hidden" name="address_id" value="<?= $a->address_id ?>">
         <button type="submit" class="btn-outline">Set as Default</button>
@@ -137,6 +160,7 @@ require '../../_head.php';
     <?php endif; ?>
 
     <form method="post" style="display:inline; max-width:none;">
+        <input type="hidden" name="token" value="<?= h($_SESSION['address_token']) ?>">
         <input type="hidden" name="action" value="delete">
         <input type="hidden" name="address_id" value="<?= $a->address_id ?>">
         <button type="submit" class="btn-danger" data-confirm="Delete this address?">Delete</button>
@@ -149,7 +173,8 @@ require '../../_head.php';
 
 <h2>Add New Address</h2>
 <form method="post" novalidate>
-    <input type="hidden" name="action" value="add">
+    <input type="hidden" name="token" value="<?= h($_SESSION['address_token']) ?>">
+        <input type="hidden" name="action" value="add">
 
     <label for="label">Label (Optional)</label>
     <?= html_text('label', "maxlength='50' placeholder='e.g. Home, Office'") ?>

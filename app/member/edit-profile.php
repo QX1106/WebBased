@@ -5,7 +5,6 @@
 $username = $_user->username;
 $email = $_user->email;
 $phone = $_user->phone;
-$address = $_user->address;
 $photo = $_user->photo;
 
 $_err = [];
@@ -14,7 +13,6 @@ if (is_post()) {
     $username = post('username');
     $email = post('email');
     $phone = post('phone');
-    $address = post('address');
 
     if (!$username) {
         $_err['username'] = 'Username is required';
@@ -36,9 +34,6 @@ if (is_post()) {
         $_err['phone'] = 'Must be a valid Malaysian phone number, e.g. 012-3456789';
     }
 
-    if ($address && strlen($address) > 255) {
-        $_err['address'] = 'Address is too long';
-    }
 
     $photo = $_user->photo;
     $file = get_file('photo');
@@ -56,14 +51,13 @@ if (is_post()) {
     }
 
     if (!$_err) {
-        $pdo->prepare("UPDATE member SET username = ?, email = ?, phone = ?, address = ?, photo = ?, updated_at = NOW() WHERE member_id = ?")
-            ->execute([$username, $email, $phone, $address, $photo, $_user->member_id]);
+        $pdo->prepare("UPDATE member SET username = ?, email = ?, phone = ?, photo = ?, updated_at = NOW() WHERE member_id = ?")
+            ->execute([$username, $email, $phone, $photo, $_user->member_id]);
 
         // sync
         $_user->username = $username;
         $_user->email = $email;
         $_user->phone = $phone;
-        $_user->address = $address;
         $_user->photo = $photo;
         $_SESSION['user'] = $_user;
 
@@ -91,9 +85,7 @@ require '../_head.php';
     <?= html_text('phone') ?>
     <?= err('phone') ?>
 
-    <label for="address">Address</label>
-    <?= html_textarea('address', "placeholder='Street, city, state, postcode'") ?>
-    <?= err('address') ?>
+    <p><a href="/member/address/list.php" style="text-decoration: underline;">Manage saved addresses</a></p>
 
     <label>Profile Photo</label>
     <?= err('photo') ?>
