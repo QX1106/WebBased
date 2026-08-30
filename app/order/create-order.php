@@ -7,8 +7,14 @@ header('Content-Type: application/json');
 
 $member_id = $_user->member_id;
 $payment_id = $_POST['pay_id'] ?? null;
-$shipping_address =
-    trim($_POST['shipping_address'] ?? '');
+
+// Either an existing saved address (address book) or a brand new one
+// typed at checkout — exactly one of these two paths is used.
+$address_id = $_POST['address_id'] ?? null;
+$new_address = trim($_POST['new_address'] ?? '');
+$new_address_label = trim($_POST['new_address_label'] ?? '');
+$save_new_address = !empty($_POST['save_address']);
+$set_as_default = !empty($_POST['set_default']);
 
 
 // ==========================
@@ -24,7 +30,7 @@ if (!$payment_id) {
     exit;
 }
 
-if (!$shipping_address) {
+if (!$address_id && !$new_address) {
     echo json_encode([
         'success' => false,
         'message' =>
@@ -33,13 +39,58 @@ if (!$shipping_address) {
     exit;
 }
 
-if (strlen($shipping_address) > 255) {
+if ($new_address && strlen($new_address) > 255) {
     echo json_encode([
         'success' => false,
         'message' =>
             'Shipping address is too long.'
     ]);
     exit;
+}
+
+if ($new_address_label && strlen($new_address_label) > 50) {
+    echo json_encode([
+        'success' => false,
+        'message' =>
+            'Address label is too long.'
+    ]);
+    exit;
+}
+
+
+// ==========================
+// Resolve the shipping address
+// ==========================
+
+$shipping_address = null;
+
+if ($address_id) {
+
+    // Must belong to this member — never trust a raw address_id from
+    // the client without checking ownership.
+    $stm = $pdo->prepare("
+        SELECT *
+        FROM member_address
+        WHERE address_id = ?
+          AND member_id = ?
+    ");
+
+    $stm->execute([$address_id, $member_id]);
+    $saved_address = $stm->fetch();
+
+    if (!$saved_address) {
+        echo json_encode([
+            'success' => false,
+            'message' =>
+                'Selected address is no longer available.'
+        ]);
+        exit;
+    }
+
+    $shipping_address = $saved_address->address;
+
+} else {
+    $shipping_address = $new_address;
 }
 
 
@@ -354,6 +405,43 @@ try {
     $pdo->beginTransaction();
 
 
+    // ======================
+    // Save new address, if requested
+    // ======================
+
+    // If the shopper typed a brand-new address rather than picking a
+    // saved one, add it to their address book now — inside the same
+    // transaction, so a failed order doesn't leave an orphan address
+    // behind.
+    if (!$address_id && $new_address) {
+
+        $stm = $pdo->prepare("SELECT COUNT(*) FROM member_address WHERE member_id = ?");
+        $stm->execute([$member_id]);
+        $has_any = $stm->fetchColumn() > 0;
+
+        $make_default = $set_as_default || !$has_any;
+
+        if ($make_default) {
+            $pdo->prepare("UPDATE member_address SET is_default = 0 WHERE member_id = ?")
+                ->execute([$member_id]);
+        }
+
+        $pdo->prepare("
+            INSERT INTO member_address
+                (member_id, label, address, is_default, created_at)
+            VALUES
+                (?, ?, ?, ?, NOW())
+        ")->execute([
+            $member_id,
+            $new_address_label ?: null,
+            $new_address,
+            $make_default ? 1 : 0
+        ]);
+
+        $address_id = $pdo->lastInsertId();
+    }
+
+
     // Create order
     $stm = $pdo->prepare("
         INSERT INTO orders
@@ -363,49 +451,23 @@ try {
                 total_amount,
                 order_status,
                 shipping_address,
+                address_id,
                 payment_id
             )
         VALUES
-            (?, NOW(), ?, 'Pending', ?, ?)
+            (?, NOW(), ?, 'Pending', ?, ?, ?)
     ");
 
     $stm->execute([
         $member_id,
         $total_amount,
         $shipping_address,
+        $address_id,
         $payment_id
     ]);
 
     $order_id =
         $pdo->lastInsertId();
-
-
-    // ======================
-    // Sync address back to profile
-    // ======================
-
-    // If the shipping address entered at checkout differs from what's
-    // saved on the member's profile, keep the profile up to date too —
-    // so next time they check out (or view their profile) it's already
-    // pre-filled with the address they actually used.
-    if ($shipping_address !== ($_user->address ?? '')) {
-
-        $stm = $pdo->prepare("
-            UPDATE member
-            SET address = ?, updated_at = NOW()
-            WHERE member_id = ?
-        ");
-
-        $stm->execute([
-            $shipping_address,
-            $member_id
-        ]);
-
-        // Keep the session copy in sync so profile.php / edit-profile.php
-        // reflect it immediately without needing to re-login.
-        $_user->address = $shipping_address;
-        $_SESSION['user'] = $_user;
-    }
 
 
     // ======================
