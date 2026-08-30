@@ -6,6 +6,10 @@ $stm = $pdo->prepare("SELECT * FROM orders WHERE member_id = ? ORDER BY order_da
 $stm->execute([$_user->member_id]);
 $orders = $stm->fetchAll();
 
+$stm = $pdo->prepare("SELECT * FROM member_address WHERE member_id = ? AND is_default = 1 LIMIT 1");
+$stm->execute([$_user->member_id]);
+$default_address = $stm->fetch();
+
 $_title = 'My Profile';
 require '../_head.php';
 ?>
@@ -17,18 +21,24 @@ require '../_head.php';
     <tr><th>Username</th><td><?= h($_user->username) ?></td></tr>
     <tr><th>Email</th><td><?= h($_user->email) ?></td></tr>
     <tr><th>Phone</th><td><?= h($_user->phone) ?></td></tr>
-    <tr><th>Address</th><td><?= h($_user->address) ?></td></tr>
+    <tr>
+        <th>Address</th>
+        <td>
+            <?= $default_address
+                ? nl2br(h($default_address->address))
+                : 'No default address set.'
+            ?>
+        </td>
+    </tr>
 </table>
 
 <p>
     <a href="/member/edit-profile.php">Edit Profile</a> |
-    <a href="/member/password.php">Change Password</a>
+    <a href="/member/password.php">Change Password</a> |
+    <a href="/member/address/list.php">My Addresses</a>
 </p>
 
-<div style="display: flex; justify-content: space-between; align-items: center; margin: 40px 0 20px;">
-    <h2 style="margin: 0;">Order History</h2>
-    <a href="/order/history.php" style="text-decoration: underline;">View all</a>
-</div>
+<h2>Order History</h2>
 <table class="table">
     <tr>
         <th>Order ID</th>

@@ -413,6 +413,8 @@ try {
     // saved one, add it to their address book now — inside the same
     // transaction, so a failed order doesn't leave an orphan address
     // behind.
+    $picked_existing_address = !empty($address_id);
+
     if (!$address_id && $new_address) {
 
         $stm = $pdo->prepare("SELECT COUNT(*) FROM member_address WHERE member_id = ?");
@@ -439,6 +441,24 @@ try {
         ]);
 
         $address_id = $pdo->lastInsertId();
+    }
+
+    // If the shopper instead picked an existing saved address AND
+    // checked "set as default", promote it here — this is the branch
+    // that was previously being skipped, since set_as_default only ever
+    // got applied when a brand-new address was being inserted above.
+    if ($picked_existing_address && $set_as_default) {
+
+        $stm = $pdo->prepare("SELECT is_default FROM member_address WHERE address_id = ? AND member_id = ?");
+        $stm->execute([$address_id, $member_id]);
+        $current = $stm->fetch();
+
+        if ($current && !$current->is_default) {
+            $pdo->prepare("UPDATE member_address SET is_default = 0 WHERE member_id = ?")
+                ->execute([$member_id]);
+            $pdo->prepare("UPDATE member_address SET is_default = 1 WHERE address_id = ?")
+                ->execute([$address_id]);
+        }
     }
 
 
