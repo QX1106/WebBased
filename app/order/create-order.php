@@ -380,33 +380,7 @@ try {
         $pdo->lastInsertId();
 
 
-    // ======================
-    // Sync address back to profile
-    // ======================
-
-    // If the shipping address entered at checkout differs from what's
-    // saved on the member's profile, keep the profile up to date too —
-    // so next time they check out (or view their profile) it's already
-    // pre-filled with the address they actually used.
-    if ($shipping_address !== ($_user->address ?? '')) {
-
-        $stm = $pdo->prepare("
-            UPDATE member
-            SET address = ?, updated_at = NOW()
-            WHERE member_id = ?
-        ");
-
-        $stm->execute([
-            $shipping_address,
-            $member_id
-        ]);
-
-        // Keep the session copy in sync so profile.php / edit-profile.php
-        // reflect it immediately without needing to re-login.
-        $_user->address = $shipping_address;
-        $_SESSION['user'] = $_user;
-    }
-
+    // The default address is updated only on the edit-address page.
 
     // ======================
     // Copy cart into order
@@ -512,6 +486,9 @@ try {
 
 
     $pdo->commit();
+
+    // The next cart starts with the member's default address.
+    unset($_SESSION['cart_address_' . $member_id]);
 
 
     echo json_encode([

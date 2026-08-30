@@ -22,8 +22,8 @@ $buy_now = $buy_now_mode
     : null;
 
 $address_session_key = $buy_now_mode
-    ? 'buy_now_address'
-    : 'cart_address';
+    ? 'buy_now_address_' . $member_id
+    : 'cart_address_' . $member_id;
 
 $payment_session_key = $buy_now_mode
     ? 'buy_now_payment_id'
@@ -370,7 +370,8 @@ require '../_head.php';
             <!-- Address-->
             <div class="summary-section">
                 <label>Address</label>
-                <textarea id="shipping-address"><?= h($address) ?></textarea>
+                <textarea id="shipping-address" readonly><?= h($address) ?></textarea>
+                <a href="edit-address.php?mode=<?= $buy_now_mode ? 'buy_now' : 'cart' ?>" style="text-decoration: underline;">Edit address</a>
             </div>
 
             <!-- Payment method -->
@@ -629,7 +630,6 @@ require '../_head.php';
             });
         }
 
-        // Checkout button
         // Checkout button
         var checkoutBtn =
             document.getElementById('checkout-btn');

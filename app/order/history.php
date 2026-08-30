@@ -57,7 +57,7 @@ $pager = new SimplePager(
     <div class="order-status-filter">
 
         <a href="?status="
-           class="<?= $status === '' ? 'active' : '' ?>">
+            class="<?= $status === '' ? 'active' : '' ?>">
             All
         </a>
 
