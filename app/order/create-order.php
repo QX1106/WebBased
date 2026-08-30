@@ -7,8 +7,39 @@ header('Content-Type: application/json');
 
 $member_id = $_user->member_id;
 $payment_id = $_POST['pay_id'] ?? null;
-$shipping_address =
-    trim($_POST['shipping_address'] ?? '');
+
+// Use either an existing saved address or the checkout form's session draft.
+$address_id = $_POST['address_id'] ?? null;
+$set_as_default = false;
+
+// Accept only our form's checkout draft, not arbitrary new-address fields.
+$token = post('token', '');
+if (!is_post() || !is_string($token) || $token === '' || !hash_equals($_SESSION['address_token'] ?? '', $token)) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Please reload the cart and try again.']);
+    exit;
+}
+$mode = post('mode', 'cart');
+if ($mode !== 'cart' && $mode !== 'buy_now') {
+    echo json_encode(['success' => false, 'message' => 'Invalid checkout mode.']);
+    exit;
+}
+$buy_now_mode = $mode === 'buy_now';
+$voucher_session_key = $buy_now_mode ? 'buy_now_voucher_id' : 'voucher_id';
+$address_key = ($mode === 'buy_now' ? 'buy_now_address_' : 'cart_address_') . $member_id;
+$new_address = '';
+$new_address_label = '';
+$save_new_address = false;
+if ($address_id === 'temporary') {
+    $draft = $_SESSION[$address_key . '_temporary'] ?? [];
+    $new_address = $draft['address'] ?? '';
+    $new_address_label = $draft['label'] ?? '';
+    $save_new_address = !empty($draft['save']);
+    $set_as_default = $save_new_address && !empty($draft['default']);
+    $address_id = null;
+} elseif (!is_string($address_id) || !ctype_digit($address_id)) {
+    $address_id = null;
+}
 
 
 // ==========================
@@ -24,7 +55,7 @@ if (!$payment_id) {
     exit;
 }
 
-if (!$shipping_address) {
+if ($address_id === null && $new_address === '') {
     echo json_encode([
         'success' => false,
         'message' =>
@@ -33,13 +64,58 @@ if (!$shipping_address) {
     exit;
 }
 
-if (strlen($shipping_address) > 255) {
+if ($new_address && strlen($new_address) > 255) {
     echo json_encode([
         'success' => false,
         'message' =>
             'Shipping address is too long.'
     ]);
     exit;
+}
+
+if ($new_address_label && strlen($new_address_label) > 50) {
+    echo json_encode([
+        'success' => false,
+        'message' =>
+            'Address label is too long.'
+    ]);
+    exit;
+}
+
+
+// ==========================
+// Resolve the shipping address
+// ==========================
+
+$shipping_address = null;
+
+if ($address_id !== null) {
+
+    // Must belong to this member — never trust a raw address_id from
+    // the client without checking ownership.
+    $stm = $pdo->prepare("
+        SELECT *
+        FROM member_address
+        WHERE address_id = ?
+          AND member_id = ?
+    ");
+
+    $stm->execute([$address_id, $member_id]);
+    $saved_address = $stm->fetch();
+
+    if (!$saved_address) {
+        echo json_encode([
+            'success' => false,
+            'message' =>
+                'Selected address is no longer available.'
+        ]);
+        exit;
+    }
+
+    $shipping_address = $saved_address->address;
+
+} else {
+    $shipping_address = $new_address;
 }
 
 
@@ -66,61 +142,95 @@ if (!$stm->fetch()) {
 
 
 // ==========================
-// Get member cart
+// Choose the items for this purchase
 // ==========================
+$cart = null;
+$items = [];
 
-$stm = $pdo->prepare("
-    SELECT id
-    FROM cart
-    WHERE member_id = ?
-    ORDER BY created_at DESC
-    LIMIT 1
-");
+if ($buy_now_mode) {
+    // Buy Now uses its own session, never the normal cart.
+    $buy_now = $_SESSION['buy_now'] ?? null;
+    if (!is_array($buy_now)) {
+        echo json_encode(['success' => false, 'message' => 'Your Buy Now selection has expired. Please select the product again.']);
+        exit;
+    }
 
-$stm->execute([$member_id]);
+    $product_id = filter_var($buy_now['product_id'] ?? null, FILTER_VALIDATE_INT);
+    $quantity = filter_var($buy_now['quantity'] ?? null, FILTER_VALIDATE_INT);
+    if (!$product_id || $product_id < 1 || !$quantity || $quantity < 1) {
+        echo json_encode(['success' => false, 'message' => 'Invalid Buy Now product or quantity. Please select the product again.']);
+        exit;
+    }
 
-$cart = $stm->fetch();
+    // Read the current price and stock from the database.
+    $stm = $pdo->prepare("SELECT id AS product_id, price, stock_qty, name FROM product WHERE id = ?");
+    $stm->execute([$product_id]);
+    $item = $stm->fetch();
 
-if (!$cart) {
-    echo json_encode([
-        'success' => false,
-        'message' =>
-            'Your cart is empty.'
-    ]);
-    exit;
+    if (!$item) {
+        echo json_encode(['success' => false, 'message' => 'This product is no longer available.']);
+        exit;
+    }
+
+    $item->quantity = $quantity;
+    $items = [$item];
+} else {
+    // ==========================
+    // Get member cart
+    // ==========================
+
+    $stm = $pdo->prepare("
+        SELECT id
+        FROM cart
+        WHERE member_id = ?
+        ORDER BY created_at DESC
+        LIMIT 1
+    ");
+
+    $stm->execute([$member_id]);
+
+    $cart = $stm->fetch();
+
+    if (!$cart) {
+        echo json_encode([
+            'success' => false,
+            'message' =>
+                'Your cart is empty.'
+        ]);
+        exit;
+    }
+
+
+    // ==========================
+    // Get cart items
+    // ==========================
+
+    $stm = $pdo->prepare("
+        SELECT
+            ci.product_id,
+            ci.quantity,
+            p.price,
+            p.stock_qty,
+            p.name
+        FROM cart_item ci
+        JOIN product p
+            ON p.id = ci.product_id
+        WHERE ci.cart_id = ?
+    ");
+
+    $stm->execute([$cart->id]);
+
+    $items = $stm->fetchAll();
+
+    if (!$items) {
+        echo json_encode([
+            'success' => false,
+            'message' =>
+                'Your cart is empty.'
+        ]);
+        exit;
+    }
 }
-
-
-// ==========================
-// Get cart items
-// ==========================
-
-$stm = $pdo->prepare("
-    SELECT
-        ci.product_id,
-        ci.quantity,
-        p.price,
-        p.stock_qty,
-        p.name
-    FROM cart_item ci
-    JOIN product p
-        ON p.id = ci.product_id
-    WHERE ci.cart_id = ?
-");
-
-$stm->execute([$cart->id]);
-
-$items = $stm->fetchAll();
-
-if (!$items) {
-    echo json_encode([
-        'success' => false,
-        'message' =>
-            'Your cart is empty.'
-    ]);
-    exit;
-}
-
 
 // ==========================
 // Check stock
@@ -163,7 +273,7 @@ foreach ($items as $item) {
 $voucher = null;
 $discount = 0;
 
-if (isset($_SESSION['voucher_id'])) {
+if (isset($_SESSION[$voucher_session_key])) {
 
     $stm = $pdo->prepare("
         SELECT *
@@ -172,14 +282,14 @@ if (isset($_SESSION['voucher_id'])) {
     ");
 
     $stm->execute([
-        $_SESSION['voucher_id']
+        $_SESSION[$voucher_session_key]
     ]);
 
     $voucher = $stm->fetch();
 
     if (!$voucher) {
 
-        unset($_SESSION['voucher_id']);
+        unset($_SESSION[$voucher_session_key]);
 
         echo json_encode([
             'success' => false,
@@ -195,7 +305,7 @@ if (isset($_SESSION['voucher_id'])) {
 
     if ($voucher->status !== 'Active') {
 
-        unset($_SESSION['voucher_id']);
+        unset($_SESSION[$voucher_session_key]);
 
         echo json_encode([
             'success' => false,
@@ -209,7 +319,7 @@ if (isset($_SESSION['voucher_id'])) {
 
     if ($today < $voucher->valid_from) {
 
-        unset($_SESSION['voucher_id']);
+        unset($_SESSION[$voucher_session_key]);
 
         echo json_encode([
             'success' => false,
@@ -222,7 +332,7 @@ if (isset($_SESSION['voucher_id'])) {
 
     if ($today > $voucher->valid_until) {
 
-        unset($_SESSION['voucher_id']);
+        unset($_SESSION[$voucher_session_key]);
 
         echo json_encode([
             'success' => false,
@@ -238,7 +348,7 @@ if (isset($_SESSION['voucher_id'])) {
         $subtotal < $voucher->min_spend
     ) {
 
-        unset($_SESSION['voucher_id']);
+        unset($_SESSION[$voucher_session_key]);
 
         echo json_encode([
             'success' => false,
@@ -257,7 +367,7 @@ if (isset($_SESSION['voucher_id'])) {
             $voucher->max_uses
     ) {
 
-        unset($_SESSION['voucher_id']);
+        unset($_SESSION[$voucher_session_key]);
 
         echo json_encode([
             'success' => false,
@@ -286,7 +396,7 @@ if (isset($_SESSION['voucher_id'])) {
 
         if ($stm->fetchColumn() > 0) {
 
-            unset($_SESSION['voucher_id']);
+            unset($_SESSION[$voucher_session_key]);
 
             echo json_encode([
                 'success' => false,
@@ -354,6 +464,42 @@ try {
     $pdo->beginTransaction();
 
 
+    // ======================
+    // Save new address, if requested
+    // ======================
+
+    // If the shopper typed a brand-new address rather than picking a
+    // saved one, add it to their address book now — inside the same
+    // transaction, so a failed order doesn't leave an orphan address
+    // behind.
+    if ($address_id === null && $new_address !== '' && $save_new_address) {
+
+        $stm = $pdo->prepare("SELECT COUNT(*) FROM member_address WHERE member_id = ?");
+        $stm->execute([$member_id]);
+        $has_any = $stm->fetchColumn() > 0;
+
+        $make_default = $set_as_default || !$has_any;
+
+        if ($make_default) {
+            $pdo->prepare("UPDATE member_address SET is_default = 0 WHERE member_id = ?")
+                ->execute([$member_id]);
+        }
+
+        $pdo->prepare("
+            INSERT INTO member_address
+                (member_id, label, address, is_default, created_at)
+            VALUES
+                (?, ?, ?, ?, NOW())
+        ")->execute([
+            $member_id,
+            $new_address_label ?: null,
+            $new_address,
+            $make_default ? 1 : 0
+        ]);
+
+    }
+
+
     // Create order
     $stm = $pdo->prepare("
         INSERT INTO orders
@@ -380,36 +526,11 @@ try {
         $pdo->lastInsertId();
 
 
-    // ======================
-    // Sync address back to profile
-    // ======================
-
-    // If the shipping address entered at checkout differs from what's
-    // saved on the member's profile, keep the profile up to date too —
-    // so next time they check out (or view their profile) it's already
-    // pre-filled with the address they actually used.
-    if ($shipping_address !== ($_user->address ?? '')) {
-
-        $stm = $pdo->prepare("
-            UPDATE member
-            SET address = ?, updated_at = NOW()
-            WHERE member_id = ?
-        ");
-
-        $stm->execute([
-            $shipping_address,
-            $member_id
-        ]);
-
-        // Keep the session copy in sync so profile.php / edit-profile.php
-        // reflect it immediately without needing to re-login.
-        $_user->address = $shipping_address;
-        $_SESSION['user'] = $_user;
-    }
-
+    // shipping_address is a permanent snapshot for saved AND temporary addresses.
+    // Orders keep the address text only; no address-book link is needed.
 
     // ======================
-    // Copy cart into order
+    // Copy this purchase's items into the order
     // ======================
 
     $stm = $pdo->prepare("
@@ -493,26 +614,23 @@ try {
     }
 
 
-    // ======================
-    // Clear cart
-    // ======================
-
-    $stm = $pdo->prepare("
-        DELETE FROM cart_item
-        WHERE cart_id = ?
-    ");
-
-    $stm->execute([
-        $cart->id
-    ]);
-
-
-    // Remove voucher session
-    unset($_SESSION['voucher_id']);
-
+    // Only normal checkout removes normal cart items.
+    if (!$buy_now_mode) {
+        $stm = $pdo->prepare("DELETE FROM cart_item WHERE cart_id = ?");
+        $stm->execute([$cart->id]);
+    }
 
     $pdo->commit();
 
+    // Clear only this purchase after the database transaction succeeds.
+    // On failure, the selection remains available for another attempt.
+    if ($buy_now_mode) {
+        unset($_SESSION['buy_now']);
+        unset($_SESSION['buy_now_payment_id']);
+    }
+    unset($_SESSION[$voucher_session_key]);
+    unset($_SESSION[$address_key]);
+    unset($_SESSION[$address_key . '_temporary']);
 
     echo json_encode([
         'success' => true,

@@ -63,7 +63,7 @@ $last_order_date = $orders ? $orders[0]->order_date : null;
     <tr><th>Registered</th><td><?= h($m->created_at) ?></td></tr>
 </table>
 
-<p><a href="edit.php?id=<?= $m->member_id ?>" class="btn-outline">Edit Member</a></p>
+<p><a href="edit.php?id=<?= $m->member_id ?>" class="btn-outline">Edit Member</a> <a href="/member/address/manage.php?id=<?= $m->member_id ?>" class="btn-outline">Manage Addresses</a></p>
 
 <form method="post">
     <input type="hidden" name="action" value="toggle_status">
