@@ -1716,3 +1716,35 @@ button.submit-cancel-request {
 button.submit-cancel-request:hover {
     opacity: 0.9;
 }
+
+/* Styles only for the shipping address page. */
+.address-page {
+    max-width: 680px;
+    margin: 30px auto;
+    padding: 28px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+.address-form {
+    max-width: none;
+}
+.address-form textarea {
+    width: 100%;
+}
+.address-form .address-help {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 8px 0 24px;
+}
+.address-actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+.address-actions a {
+    text-decoration: underline;
+}
+@media (max-width: 600px) {
+    .address-page { padding: 18px; }
+}

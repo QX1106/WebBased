@@ -470,6 +470,8 @@ try {
         $pdo->lastInsertId();
 
 
+    // The default address is updated only on the edit-address page.
+
     // ======================
     // Copy cart into order
     // ======================
@@ -574,6 +576,9 @@ try {
 
 
     $pdo->commit();
+
+    // The next cart starts with the member's default address.
+    unset($_SESSION['cart_address_' . $member_id]);
 
 
     echo json_encode([

@@ -1,41 +1,21 @@
 <?php
-
 require '../_base.php';
-
 auth('Member');
-
 header('Content-Type: application/json');
 
+if (!is_post()) {
+    http_response_code(405);
+    echo json_encode(['success' => false]);
+    exit;
+}
+
 $mode = post('mode', 'cart');
+$payment_session_key = $mode === 'buy_now'
+    ? 'buy_now_payment_id'
+    : 'cart_payment_id';
 
-$buy_now_mode =
-    $mode === 'buy_now';
+// Addresses are now saved by edit-address.php only.
+// This prevents an older cart page from overwriting the new address.
+$_SESSION[$payment_session_key] = post('pay_id');
 
-$address_session_key =
-    $buy_now_mode
-        ? 'buy_now_address'
-        : 'cart_address';
-
-$payment_session_key =
-    $buy_now_mode
-        ? 'buy_now_payment_id'
-        : 'cart_payment_id';
-
-
-$address =
-    trim(post('shipping_address'));
-
-$payment_id =
-    post('pay_id');
-
-
-$_SESSION[$address_session_key] =
-    $address;
-
-$_SESSION[$payment_session_key] =
-    $payment_id;
-
-
-echo json_encode([
-    'success' => true
-]);
+echo json_encode(['success' => true]);
