@@ -10,15 +10,12 @@ $quantity = (int) post('quantity');
 
 
 if (!$product_id || $quantity < 1) {
-
     echo json_encode([
         'success' => false,
         'message' => 'Invalid product or quantity.'
     ]);
-
     exit;
 }
-
 
 // Get product and validate stock
 $stm = $pdo->prepare("
@@ -28,28 +25,21 @@ $stm = $pdo->prepare("
 ");
 
 $stm->execute([$product_id]);
-
 $product = $stm->fetch();
 
-
 if (!$product) {
-
     echo json_encode([
         'success' => false,
         'message' => 'Product not found.'
     ]);
-
     exit;
 }
 
-
 if ($quantity > $product->stock_qty) {
-
     echo json_encode([
         'success' => false,
         'message' => 'Not enough stock available.'
     ]);
-
     exit;
 }
 
@@ -59,7 +49,7 @@ $_SESSION['buy_now'] = [
     'quantity'   => $quantity
 ];
 
-// A new Buy Now should not inherit an older Buy Now voucher
+// Unset previous Buy Now voucher
 unset($_SESSION['buy_now_voucher_id']);
 
 echo json_encode([

@@ -60,13 +60,11 @@ $discount = 0;
 $voucher_removed = false;
 
 if (isset($_SESSION['voucher_id'])) {
-
     $stm = $pdo->prepare("SELECT * FROM voucher WHERE voucher_id = ?");
     $stm->execute([$_SESSION['voucher_id']]);
     $voucher = $stm->fetch();
 
     if ($voucher) {
-
         $today = date('Y-m-d');
 
         $valid =
@@ -96,10 +94,8 @@ if (isset($_SESSION['voucher_id'])) {
         }
 
         if ($valid) {
-
             if ($voucher->discount_type === 'Percentage') {
                 $discount = $subtotal * ($voucher->discount_value / 100);
-
                 if (
                     $voucher->max_discount !== null &&
                     $discount > $voucher->max_discount

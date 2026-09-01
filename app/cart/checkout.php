@@ -67,4 +67,5 @@ require '../_head.php';
         </div>
     <?php endif; ?>
 </div>
+
 <?php require '../_foot.php'; ?>

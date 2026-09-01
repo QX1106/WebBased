@@ -11,7 +11,6 @@ if (!$order_id) {
 }
 
 // Make sure this order belongs to this member
-// and is still Pending
 $stm = $pdo->prepare("
     SELECT *
     FROM orders
@@ -57,44 +56,21 @@ if ($existing_request) {
 <?php require '../_head.php'; ?>
 
 <div class="cancel-request-page">
-
     <div class="cancel-request-header">
         <h1>Cancellation Request</h1>
-        <p>
-            Order #<?= h($order->order_id) ?>
-        </p>
+        <p>Order #<?= h($order->order_id) ?></p>
     </div>
 
     <div class="cancel-request-box">
-
         <p class="cancel-request-description">
             Please tell us why you would like to cancel this order.
             Your request will be reviewed before the order is cancelled.
         </p>
-
-        <form
-            method="post"
-            action="cancel-request-submit.php"
-            enctype="multipart/form-data"
-        >
-
-            <input
-                type="hidden"
-                name="order_id"
-                value="<?= h($order->order_id) ?>"
-            >
-
+        <form method="post" action="cancel-request-submit.php" enctype="multipart/form-data">
+            <input type="hidden" name="order_id" value="<?= h($order->order_id) ?>">
             <div class="cancel-field">
-                <label for="reason">
-                    Reason for Cancellation
-                </label>
-
-                <textarea
-                    id="reason"
-                    name="reason"
-                    required
-                    placeholder="Tell us why you would like to cancel this order..."
-                ></textarea>
+                <label for="reason">Reason for Cancellation</label>
+                <textarea id="reason" name="reason" required placeholder="Tell us why you would like to cancel this order..."></textarea>
             </div>
 
             <div class="cancel-request-actions">
