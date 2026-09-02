@@ -7,27 +7,17 @@ auto_complete_shipped_orders();
 $member_id = $_user->member_id;
 $order_id = get('id');
 
-// ----------------------------------------------------------------------
-// Validate Order ID
-// ----------------------------------------------------------------------
-
 if (!$order_id || !ctype_digit((string)$order_id)) {
     redirect('order.php');
 }
-
-// ----------------------------------------------------------------------
-// Get Order
-// ----------------------------------------------------------------------
 
 $stm = $pdo->prepare("
     SELECT
         o.*,
         p.pay_name
     FROM orders o
-
     LEFT JOIN payment p
         ON o.payment_id = p.pay_id
-
     WHERE o.order_id = ?
     AND o.member_id = ?
 ");
@@ -43,10 +33,6 @@ $order = $stm->fetch();
 if (!$order) {
     redirect('order.php');
 }
-
-// ----------------------------------------------------------------------
-// Get Order Items
-// ----------------------------------------------------------------------
 
 $stm = $pdo->prepare("
     SELECT
@@ -66,30 +52,16 @@ $stm = $pdo->prepare("
 $stm->execute([$order_id]);
 $items = $stm->fetchAll();
 
-// ----------------------------------------------------------------------
-// Calculate Original Subtotal
-// ----------------------------------------------------------------------
-// Use order_item.unit_price instead of current product.price because
-// order_item stores the price at the time the order was created.
-
 $subtotal = 0;
 
 foreach ($items as $item) {
     $subtotal += $item->unit_price * $item->quantity;
 }
 
-// ----------------------------------------------------------------------
-// Calculate Discount
-// ----------------------------------------------------------------------
-
 $discount = max(
     0,
     $subtotal - $order->total_amount
 );
-
-// ----------------------------------------------------------------------
-// Check Cancellation Request
-// ----------------------------------------------------------------------
 
 $stm = $pdo->prepare("
     SELECT *
@@ -125,10 +97,6 @@ $cancel_request = $stm->fetch();
             <?= h($order->order_status) ?>
         </div>
     </div>
-
-    <!-- ============================================================= -->
-    <!-- Order Items                                                   -->
-    <!-- ============================================================= -->
 
     <div class="order-section">
         <h2>Order Items</h2>
@@ -174,9 +142,6 @@ $cancel_request = $stm->fetch();
         <?php endforeach; ?>
     </div>
 
-    <!-- ============================================================= -->
-    <!-- Delivery + Summary                                            -->
-    <!-- ============================================================= -->
     <div class="order-detail-bottom">
         <!-- Delivery Information -->
         <div class="order-section order-info">
@@ -250,9 +215,6 @@ $cancel_request = $stm->fetch();
         </div>
     </div>
 
-    <!-- ============================================================= -->
-    <!-- Cancellation Request Information                              -->
-    <!-- ============================================================= -->
     <?php if ($cancel_request): ?>
         <div class="order-section cancellation-status">
             <h2>Cancellation Request</h2>
@@ -299,9 +261,6 @@ $cancel_request = $stm->fetch();
         </div>
     <?php endif; ?>
 
-    <!-- ============================================================= -->
-    <!-- Actions                                                       -->
-    <!-- ============================================================= -->
     <div class="order-detail-actions">
         <a href="order.php">← Back to Orders</a>
 
@@ -322,21 +281,11 @@ $cancel_request = $stm->fetch();
 
                 <!-- Normal Pending Order Actions -->
                 <div class="pending-order-actions">
-                    <a
-                        href="checkout.php?order_id=<?= 
-                            $order->order_id 
-                        ?>"
-                        class="btn-checkout"
-                    >
+                    <a href="checkout.php?order_id=<?= $order->order_id?>" class="btn-checkout">
                         Proceed to Payment
                     </a>
 
-                    <a
-                        href="cancel-request.php?order_id=<?= 
-                            $order->order_id 
-                        ?>"
-                        class="btn-cancel-order"
-                    >
+                    <a href="cancel-request.php?order_id=<?= $order->order_id?>" class="btn-cancel-order">
                         Cancel Order
                     </a>
                 </div>

@@ -71,6 +71,7 @@ require '../_head.php';
         </div>
     </form>
 </div>
+
 <script>
 document.getElementById('save-address').addEventListener('change', function() {
     var defaultBox = document.getElementById('set-default');

@@ -29,8 +29,7 @@ $payment_session_key = $buy_now_mode
     ? 'buy_now_payment_id'
     : 'cart_payment_id';
 
-// All of this member's saved addresses, so they can pick which one
-// this order ships to.
+// All of this member's saved addresses
 $stm = $pdo->prepare("
     SELECT *
     FROM member_address
@@ -40,8 +39,6 @@ $stm = $pdo->prepare("
 $stm->execute([$member_id]);
 $saved_addresses = $stm->fetchAll();
 
-// Which one is currently selected: a session override (if it's still
-// one of this member's addresses), else their default.
 $selected_address_id = $_SESSION[$address_session_key] ?? null;
 $selected_address = null;
 
@@ -82,16 +79,8 @@ $items = [];
 $cart = null;
 
 if ($buy_now_mode) {
-
-    // --------------------------------------------------------------
-    // BUY NOW MODE
-    // --------------------------------------------------------------
-
-    $product_id =
-        (int) $buy_now['product_id'];
-
-    $quantity =
-        (int) $buy_now['quantity'];
+    $product_id = (int) $buy_now['product_id'];
+    $quantity = (int) $buy_now['quantity'];
 
     $stm = $pdo->prepare("
         SELECT
@@ -114,7 +103,6 @@ if ($buy_now_mode) {
 
     if ($item) {
         if ($item && $item->stock_qty > 0) {
-
             if ($item->quantity > $item->stock_qty) {
                 $item->quantity = $item->stock_qty;
                 $_SESSION['buy_now']['quantity'] = $item->stock_qty;
@@ -122,7 +110,6 @@ if ($buy_now_mode) {
 
             $items = [$item];
         } else {
-
             unset($_SESSION['buy_now']);
             unset($_SESSION['buy_now_voucher_id']);
 
@@ -131,11 +118,6 @@ if ($buy_now_mode) {
         }
     }
 } else {
-
-    // --------------------------------------------------------------
-    // NORMAL CART MODE
-    // --------------------------------------------------------------
-
     $stm = $pdo->prepare("
         SELECT id
         FROM cart
@@ -145,23 +127,19 @@ if ($buy_now_mode) {
     ");
 
     $stm->execute([$member_id]);
-
     $cart = $stm->fetch();
 
-
     if ($cart) {
-
         $stm = $pdo->prepare("
             UPDATE cart_item ci
             JOIN product p
                 ON p.id = ci.product_id
             SET ci.quantity = p.stock_qty
             WHERE ci.cart_id = ?
-              AND ci.quantity > p.stock_qty
+            AND ci.quantity > p.stock_qty
         ");
 
         $stm->execute([$cart->id]);
-
 
         $stm = $pdo->prepare("
             SELECT
@@ -172,12 +150,9 @@ if ($buy_now_mode) {
                 p.stock_qty,
                 p.photo
             FROM cart_item ci
-
             JOIN product p
                 ON p.id = ci.product_id
-
             WHERE ci.cart_id = ?
-
             ORDER BY p.name
         ");
 
@@ -215,7 +190,6 @@ if (isset($_SESSION[$voucher_session_key])) {
     $voucher = $stm->fetch();
 
     if ($voucher) {
-
         $today = date('Y-m-d');
 
         $valid =
@@ -249,7 +223,6 @@ if (isset($_SESSION[$voucher_session_key])) {
         }
 
         if ($valid) {
-
             if ($voucher->discount_type === 'Percentage') {
                 $discount =
                     $subtotal *
@@ -359,37 +332,14 @@ require '../_head.php';
             <!-- Voucher -->
             <div class="summary-section">
                 <label>Voucher</label>
-                <form
-                    method="post"
-                    action="voucher.php"
-                    id="voucher-form">
-
-                    <input
-                        type="hidden"
-                        name="mode"
-                        value="<?= $buy_now_mode
-                                    ? 'buy_now'
-                                    : 'cart'
-                                ?>">
-
+                <form method="post" action="voucher.php" id="voucher-form">
+                    <input type="hidden" name="mode"
+                        value="<?= $buy_now_mode ? 'buy_now' : 'cart' ?>">
                     <div class="voucher-box">
-
-                        <input
-                            type="text"
-                            name="voucher_code"
-                            id="voucher-code"
-                            placeholder="Enter voucher code"
-                            value="<?= $voucher
-                                        ? h($voucher->code)
-                                        : ''
-                                    ?>">
-
-                        <button type="submit">
-                            Apply
-                        </button>
-
+                        <input type="text" name="voucher_code" id="voucher-code" placeholder="Enter voucher code"
+                            value="<?= $voucher ? h($voucher->code) : '' ?>">
+                        <button type="submit">Apply</button>
                     </div>
-
                 </form>
             </div>
 
@@ -514,20 +464,16 @@ require '../_head.php';
             });
         }
 
-        // Reusable: remove an item from the cart (used by the remove button
-        // and by "decrease past 1" on the quantity buttons)
+        // Remove an item from the cart
         function removeItem(productId, row) {
-
             var buyNowMode =
                 <?= $buy_now_mode ? 'true' : 'false' ?>;
 
             if (buyNowMode) {
-
                 return postJSON(
                         'buy-now-remove.php', {}
                     )
                     .then(function(data) {
-
                         if (!data.success) {
                             alert(
                                 data.message ||
@@ -535,7 +481,6 @@ require '../_head.php';
                             );
                             return;
                         }
-
                         window.location.href =
                             '/cart/index.php?mode=buy_now';
                     });
@@ -547,7 +492,6 @@ require '../_head.php';
                     }
                 )
                 .then(function(data) {
-
                     if (!data.success) {
                         alert(
                             data.message ||
@@ -702,11 +646,9 @@ require '../_head.php';
             document.getElementById('checkout-btn');
 
         if (checkoutBtn) {
-
             checkoutBtn.addEventListener(
                 'click',
                 function() {
-
                     var paySelect =
                         document.querySelector(
                             'select[name="pay_id"]'
@@ -722,11 +664,6 @@ require '../_head.php';
 
                     var addressId =
                         addressSelect ? addressSelect.value : '';
-
-
-                    // ------------------------------------------------------
-                    // Check unapplied voucher
-                    // ------------------------------------------------------
 
                     var voucherInput =
                         document.getElementById(
@@ -745,7 +682,6 @@ require '../_head.php';
                                 : ''
                         ) ?>;
 
-
                     if (
                         enteredVoucher !== '' &&
                         enteredVoucher.toUpperCase() !==
@@ -759,26 +695,17 @@ require '../_head.php';
                                 'Press Cancel to continue without the voucher.'
                             );
 
-
                         if (shouldApply) {
-
                             document
                                 .getElementById(
                                     'voucher-form'
                                 )
                                 .submit();
-
                             return;
                         }
                     }
 
-
-                    // ------------------------------------------------------
-                    // Payment validation
-                    // ------------------------------------------------------
-
                     if (!payId) {
-
                         alert(
                             'Please select a payment method.'
                         );
@@ -786,30 +713,17 @@ require '../_head.php';
                         return;
                     }
 
-
-                    // ------------------------------------------------------
-                    // Address validation
-                    // ------------------------------------------------------
-
                     if (!addressId) {
-
                         alert(
                             'Please add a shipping address before checking out.'
                         );
-
                         return;
                     }
-
 
                     checkoutBtn.disabled = true;
 
                     checkoutBtn.textContent =
                         'Processing...';
-
-
-                    // ------------------------------------------------------
-                    // Remember the selection only, without editing saved addresses.
-                    // ------------------------------------------------------
 
                     saveCheckoutDetails()
                         .then(function() {
@@ -825,38 +739,29 @@ require '../_head.php';
                             );
                         })
                         .then(function(data) {
-
                             if (!data.success) {
-
                                 alert(
                                     data.message ||
                                     'Could not create order.'
                                 );
-
                                 checkoutBtn.disabled =
                                     false;
 
                                 checkoutBtn.textContent =
                                     'Proceed to Checkout';
-
                                 return;
                             }
-
 
                             window.location.href =
                                 'checkout.php?order_id=' +
                                 data.order_id;
-
                         })
                         .catch(function(error) {
-
                             alert(
                                 error.message || 'Something went wrong. Please try again.'
                             );
-
                             checkoutBtn.disabled =
                                 false;
-
                             checkoutBtn.textContent =
                                 'Proceed to Checkout';
                         });
@@ -894,8 +799,7 @@ require '../_head.php';
                 function() { saveCheckoutDetails().catch(function(error) { alert(error.message); }); }
             );
 
-        // Update the preview and save when a different saved address
-        // is picked
+        // Update the preview 
         var addressSelectEl =
             document.getElementById('shipping-address-select');
 
@@ -919,19 +823,15 @@ require '../_head.php';
             });
         }
 
-
         // Save checkout details before applying voucher
         var voucherForm =
             document.getElementById('voucher-form');
 
         if (voucherForm) {
-
             voucherForm.addEventListener(
                 'submit',
                 function(e) {
-
                     e.preventDefault();
-
                     saveCheckoutDetails()
                         .then(function() {
                             voucherForm.submit();

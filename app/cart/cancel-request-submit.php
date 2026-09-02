@@ -14,7 +14,6 @@ if (!$order_id || $reason === '') {
 }
 
 // Make sure the order belongs to this member
-// and is still Pending
 $stm = $pdo->prepare("
     SELECT order_id
     FROM orders
@@ -35,7 +34,6 @@ if (!$order) {
     redirect('order.php');
 }
 
-
 // Prevent duplicate pending requests
 $stm = $pdo->prepare("
     SELECT COUNT(*)
@@ -55,7 +53,7 @@ if ($stm->fetchColumn() > 0) {
     redirect("order-details.php?id=$order_id");
 }
 
-// Photo not handled yet
+// Previously got photo but now dont have
 $photo = null;
 
 // Insert cancellation request
@@ -81,5 +79,4 @@ $stm->execute([
 ]);
 
 temp('info', 'Cancellation request submitted successfully.');
-
 redirect("order-details.php?id=$order_id");
